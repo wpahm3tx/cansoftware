@@ -1,0 +1,1016 @@
+
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAN SOFTWARE AI</title>
+
+<style>
+:root {
+  --bg: #08080c;
+  --panel: #171018;
+  --red: #ff2847;
+  --line: #68243a;
+  --muted: #bdaab3;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: radial-gradient(ellipse at top, #350c1e, #08080c 70%);
+  color: white;
+  font-family: Arial, sans-serif;
+}
+button, input, textarea { font: inherit; }
+button {
+  background: #2b1420;
+  color: white;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 11px;
+  cursor: pointer;
+}
+button:hover {
+  border-color: var(--red);
+  box-shadow: 0 0 16px #ff284755;
+}
+button:disabled { opacity: .55; cursor: wait; }
+[hidden] { display: none !important; }
+
+.app { height: 100dvh; display: flex; }
+aside {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: linear-gradient(#260d1a, #0d0b10);
+  border-right: 1px solid var(--line);
+  padding: 15px;
+}
+.brand { text-align: center; }
+.brand img {
+  width: 135px;
+  height: 135px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 16px #ff284777);
+}
+.brand h2 {
+  font-size: 19px;
+  text-shadow: 0 0 13px var(--red);
+  margin: 7px;
+}
+.brand small, small, .muted { color: var(--muted); }
+.primary {
+  background: linear-gradient(120deg, #a60028, #ff304f);
+  border-color: #ff667e;
+  box-shadow: 0 0 14px #ff284744;
+  font-weight: bold;
+}
+#history { flex: 1; min-height: 0; overflow: auto; }
+.history-item {
+  width: 100%;
+  display: block;
+  text-align: left;
+  margin: 4px 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.history-item.active { border-color: var(--red); }
+#userEmail {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+header {
+  height: 68px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--line);
+  background: #150c14;
+}
+header img { width: 46px; height: 46px; object-fit: contain; }
+header strong { font-size: 18px; text-shadow: 0 0 12px var(--red); }
+header small { display: block; font-size: 11px; }
+#menu { display: none; }
+#messages {
+  flex: 1;
+  overflow: auto;
+  padding: 20px max(16px, calc((100% - 850px)/2));
+}
+.welcome { text-align: center; padding-top: 7vh; }
+.welcome img {
+  width: min(195px, 50vw);
+  filter: drop-shadow(0 0 20px #ff284788);
+}
+h1 { text-shadow: 0 0 18px var(--red); }
+.chips {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 20px;
+}
+.msg { margin: 14px 0; line-height: 1.6; overflow-wrap: anywhere; }
+.msg.user {
+  width: fit-content;
+  max-width: 90%;
+  margin-left: auto;
+  padding: 14px;
+  background: #301521;
+  border: 1px solid #75253d;
+  border-radius: 16px;
+}
+.msg.assistant {
+  padding: 14px;
+  background: #1b131b;
+  border-left: 3px solid var(--red);
+  border-radius: 0 12px 12px 0;
+}
+.msg .body { white-space: pre-wrap; }
+.msg img {
+  display: block;
+  max-width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  border-radius: 10px;
+  margin: 12px 0;
+}
+.msg a { color: #ff94a5; }
+.composer {
+  padding: 12px max(16px, calc((100% - 850px)/2)) 16px;
+}
+.modes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.mode { font-size: 13px; padding: 10px; }
+.mode.active {
+  background: #5b1930;
+  border-color: var(--red);
+  box-shadow: 0 0 12px #ff284744;
+}
+.compose {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  padding: 9px;
+  background: #1b121b;
+  border: 1px solid #a32c49;
+  border-radius: 17px;
+  box-shadow: 0 0 17px #ff284722;
+}
+textarea {
+  flex: 1;
+  min-width: 0;
+  max-height: 180px;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  resize: none;
+  color: white;
+  padding: 10px;
+}
+.send {
+  width: 45px;
+  height: 45px;
+  background: var(--red);
+  border: 0;
+  font-size: 20px;
+}
+#preview {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  margin-bottom: 9px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+#preview img { width: 60px; height: 60px; object-fit: cover; }
+#filename { font-size: 12px; overflow-wrap: anywhere; }
+#removeFile { margin-left: auto; }
+#status { min-height: 22px; color: #ff9baa; font-size: 12px; padding: 5px; }
+
+.auth {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: radial-gradient(circle, #470d23, #08080c 65%);
+}
+.auth-card {
+  width: 100%;
+  max-width: 410px;
+  text-align: center;
+  background: #171019;
+  border: 1px solid #b12c48;
+  border-radius: 22px;
+  padding: 27px;
+  box-shadow: 0 0 35px #ff284733;
+}
+.auth-card img { width: 130px; height: 130px; object-fit: contain; }
+.auth-card input {
+  width: 100%;
+  margin: 7px 0;
+  padding: 13px;
+  background: #241820;
+  border: 1px solid #6c2b3d;
+  border-radius: 10px;
+  color: white;
+}
+.auth-card button { width: 100%; margin-top: 9px; }
+#authError { color: #ff9baa; }
+
+.content-page {
+  max-width: 760px;
+  margin: auto;
+  text-align: center;
+  padding: 20px 0 45px;
+}
+.content-page p { color: var(--muted); }
+.credit-card {
+  background: linear-gradient(135deg, #2b101c, #140e16);
+  border: 1px solid #8c2b43;
+  border-radius: 18px;
+  padding: 24px;
+  margin: 14px 0;
+  box-shadow: 0 0 16px #ff284722;
+}
+.credit-card h2 { margin: 8px 0; }
+.credit-card small { color: #ff9aaa; }
+.credit-card.featured {
+  border: 2px solid #ff3655;
+  background: linear-gradient(135deg, #5a1029, #21101a);
+  box-shadow: 0 0 25px #ff284766;
+}
+.credit-card.featured h2 { text-shadow: 0 0 14px var(--red); }
+.credit-card.maker {
+  border-color: #ff6579;
+  box-shadow: 0 0 22px #ff284744;
+}
+.credits-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.credits-grid .credit-card { margin: 0; }
+.section-title { margin: 32px 0 18px; color: #ff8296; }
+.contact-link {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 14px 25px;
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
+  background: linear-gradient(135deg, #a90025, #ff2847);
+  border: 1px solid #ff7086;
+  border-radius: 12px;
+  box-shadow: 0 0 20px #ff284777;
+}
+.contact-link:hover {
+  box-shadow: 0 0 35px #ff2847bb;
+  transform: translateY(-2px);
+}
+@media (max-width: 700px) {
+  aside {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 20;
+    transform: translateX(-105%);
+    transition: transform .2s;
+  }
+  aside.open { transform: translateX(0); }
+  #menu { display: block; }
+  header { padding: 10px; }
+  header strong { font-size: 15px; }
+  #messages { padding: 14px; }
+  .composer { padding: 10px; }
+  .credits-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="auth" id="auth">
+  <div class="auth-card">
+    <img src="/logo.png" alt="CAN SOFTWARE AI logosu">
+    <h1>CAN SOFTWARE AI</h1>
+    <p>Yapay zekâ platformuna hoş geldin.</p>
+    <form id="authForm">
+      <input id="email" type="email" placeholder="E-posta" required>
+      <input id="password" type="password" placeholder="Şifre" minlength="6" required>
+      <button class="primary" id="login" type="submit">Giriş Yap</button>
+    </form>
+    <button id="google">Google ile devam et</button>
+    <button id="register">Hesap oluştur</button>
+    <p id="authError"></p>
+  </div>
+</div>
+
+<div class="app">
+  <aside id="sidebar">
+    <div class="brand">
+      <img src="/logo.png" alt="CAN SOFTWARE AI">
+      <h2>CAN SOFTWARE AI</h2>
+      <small>Geleceğin Yapay Zekâsı</small>
+    </div>
+    <button class="primary" id="newChat">＋ Yeni Sohbet</button>
+    <button id="showChat">💬 Sohbetler</button>
+    <button id="showCredits">👑 Yapımcı & Destekçiler</button>
+    <button id="showContact">📱 TikTok & İletişim</button>
+    <div id="history"></div>
+    <div id="userEmail"></div>
+    <button id="logout">Çıkış Yap</button>
+  </aside>
+
+  <main>
+    <header>
+      <button id="menu">☰</button>
+      <img src="/logo.png" alt="Logo">
+      <div>
+        <strong>CAN SOFTWARE AI</strong>
+        <small>AI Sohbet • Görsel • Fotoğraf</small>
+      </div>
+    </header>
+    <div id="messages"></div>
+    <div class="composer" id="composer">
+      <div class="modes">
+        <button class="mode active" id="modeChat">💬 AI Sohbet</button>
+        <button class="mode" id="modeImage">🎨 Görsel Oluştur</button>
+        <button class="mode" id="modeEdit">🖼️ Fotoğraf Düzenle</button>
+      </div>
+      <div id="preview">
+        <img id="thumb" alt="Seçilen fotoğraf">
+        <span id="filename"></span>
+        <button id="removeFile">✕</button>
+      </div>
+      <div class="compose">
+        <button class="mode" id="attach">＋</button>
+        <input id="file" type="file"
+          accept="image/png,image/jpeg,image/webp" hidden>
+        <textarea id="prompt" rows="2"
+          placeholder="CAN SOFTWARE AI'ye mesaj yaz..."></textarea>
+        <button class="send" id="send">➤</button>
+      </div>
+      <div id="status"></div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script type="module">
+const $ = id => document.getElementById(id);
+
+const supa = window.supabase.createClient(
+  "https://xllmhgabuzaledxqqufe.supabase.co",
+  "sb_publishable_7BnfXFJWwC77ddC8jTXhfA_gvoMYDrL"
+);
+
+let user = null;
+let chats = [];
+let current = null;
+let page = "chat";
+let mode = "chat";
+let file = null;
+let previewUrl = null;
+let busy = false;
+let registerMode = false;
+
+const makeId = () =>
+  crypto.randomUUID?.() || String(Date.now() + Math.random());
+
+function status(text = "") {
+  $("status").textContent = text;
+}
+
+function active() {
+  return chats.find(c => c.id === current);
+}
+
+function save() {
+  if (!user) return;
+  try {
+    const compact = chats.map(c => ({
+      ...c,
+      messages: c.messages.map(m => ({
+        role: m.role,
+        content: m.content,
+        image: null
+      }))
+    }));
+    localStorage.setItem(
+      "can-software-chats-" + user.id,
+      JSON.stringify(compact)
+    );
+  } catch (e) {
+    console.warn("Kayıt hatası", e);
+  }
+}
+
+function newChat() {
+  const c = {
+    id: makeId(),
+    title: "Yeni sohbet",
+    messages: []
+  };
+  chats.unshift(c);
+  current = c.id;
+  page = "chat";
+  save();
+  render();
+  $("sidebar").classList.remove("open");
+}
+
+function setMode(next) {
+  mode = next;
+  page = "chat";
+  for (const [id, m] of [
+    ["modeChat", "chat"],
+    ["modeImage", "image"],
+    ["modeEdit", "edit"]
+  ]) {
+    $(id).classList.toggle("active", next === m);
+  }
+  $("prompt").placeholder =
+    next === "image"
+      ? "Oluşturmak istediğin görseli anlat..."
+      : next === "edit"
+      ? "Fotoğrafı nasıl değiştireyim? İstediğini yaz..."
+      : "CAN SOFTWARE AI'ye mesaj yaz...";
+  $("attach").disabled = next === "image";
+  render();
+}
+
+$("modeChat").onclick = () => setMode("chat");
+$("modeImage").onclick = () => setMode("image");
+$("modeEdit").onclick = () => setMode("edit");
+
+function add(c, role, content, image = null) {
+  c.messages.push({ role, content, image });
+  save();
+  if (current === c.id) render();
+}
+
+function card(name, subtitle, type = "", emoji = "❤️") {
+  const el = document.createElement("div");
+  el.className = "credit-card " + type;
+  const icon = document.createElement("div");
+  icon.style.fontSize = "32px";
+  icon.textContent = emoji;
+  const h = document.createElement("h2");
+  h.textContent = name;
+  const small = document.createElement("small");
+  small.textContent = subtitle;
+  el.append(icon, h, small);
+  return el;
+}
+
+function heading(root, text) {
+  const h = document.createElement("h2");
+  h.className = "section-title";
+  h.textContent = text;
+  root.append(h);
+}
+
+function pageBase(title, subtitle) {
+  $("composer").hidden = true;
+  const root = $("messages");
+  root.replaceChildren();
+  const wrap = document.createElement("div");
+  wrap.className = "content-page";
+  const h = document.createElement("h1");
+  h.textContent = title;
+  const p = document.createElement("p");
+  p.textContent = subtitle;
+  wrap.append(h, p);
+  root.append(wrap);
+  root.scrollTop = 0;
+  return wrap;
+}
+
+function showCredits() {
+  page = "credits";
+  $("sidebar").classList.remove("open");
+  const wrap = pageBase(
+    "👑 Yapımcı & Destekçiler",
+    "CAN SOFTWARE AI projesine katkıda bulunanlar"
+  );
+  heading(wrap, "👑 KURUCU & YAPIMCI");
+  wrap.append(
+    card("AHMET UTKU CAN", "CAN SOFTWARE", "maker", "👑")
+  );
+  heading(wrap, "❤️ DESTEKÇİLERİMİZ");
+  wrap.append(
+    card("BRDX FAMILY", "Özel Destekçi", "featured", "🔥")
+  );
+  const grid = document.createElement("div");
+  grid.className = "credits-grid";
+  [
+    "KARTANESİ",
+    "KAMİ ÖMER",
+    "KAMİ",
+    "KAMİ AİLESİ"
+  ].forEach(name => {
+    grid.append(card(name, "Değerli Destekçimiz"));
+  });
+  wrap.append(grid);
+}
+
+function showContact() {
+  page = "contact";
+  $("sidebar").classList.remove("open");
+
+  const wrap = pageBase(
+    "📱 TikTok & İletişim",
+    "CAN SOFTWARE AI resmi iletişim hesapları"
+  );
+
+  function contact(name, value, url, linkLabel, featured) {
+    const el = card(
+      name,
+      value,
+      featured ? "featured" : "",
+      "📱"
+    );
+    const link = document.createElement("a");
+    link.className = "contact-link";
+    link.href = url;
+    link.textContent = linkLabel;
+
+    if (url.startsWith("https:")) {
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+    }
+    el.append(link);
+    wrap.append(el);
+  }
+
+  contact(
+    "🎵 TİKTOK",
+    "@wp.ahmetx",
+    "https://www.tiktok.com/@wp.ahmetx",
+    "TikTok Hesabına Git",
+    true
+  );
+
+  contact(
+    "✉️ E-POSTA",
+    "ahmet.utku.can1@gmail.com",
+    "mailto:ahmet.utku.can1@gmail.com",
+    "E-Posta Gönder",
+    false
+  );
+
+  const footer = document.createElement("p");
+  footer.textContent = "CAN SOFTWARE AI — AHMET UTKU CAN";
+  wrap.append(footer);
+}
+
+$("showCredits").onclick = showCredits;
+$("showContact").onclick = showContact;
+$("showChat").onclick = () => {
+  page = "chat";
+  render();
+  $("sidebar").classList.remove("open");
+};
+
+function render() {
+  const history = $("history");
+  history.replaceChildren();
+
+  for (const c of chats) {
+    const button = document.createElement("button");
+    button.className =
+      "history-item" + (c.id === current ? " active" : "");
+    button.textContent = "💬 " + c.title;
+    button.onclick = () => {
+      current = c.id;
+      page = "chat";
+      render();
+      $("sidebar").classList.remove("open");
+    };
+    history.append(button);
+  }
+
+  if (page === "credits") {
+    showCredits();
+    return;
+  }
+  if (page === "contact") {
+    showContact();
+    return;
+  }
+
+  $("composer").hidden = false;
+  const root = $("messages");
+  root.replaceChildren();
+  const c = active();
+
+  if (!c || !c.messages.length) {
+    const welcome = document.createElement("div");
+    welcome.className = "welcome";
+
+    const logo = document.createElement("img");
+    logo.src = "/logo.png";
+
+    const title = document.createElement("h1");
+    title.textContent = "CAN SOFTWARE AI";
+
+    const description = document.createElement("p");
+    description.className = "muted";
+    description.textContent =
+      "Sohbet et, görsel oluştur, fotoğraf düzenle.";
+
+    const chips = document.createElement("div");
+    chips.className = "chips";
+
+    [
+      ["💻 Kod Yaz", "chat", "Bana bir web sitesi yap"],
+      [
+        "🎨 Görsel Oluştur",
+        "image",
+        "Kırmızı neonlu kurt temalı teknoloji görseli"
+      ],
+      [
+        "🖼️ Fotoğraf Düzenle",
+        "edit",
+        "Fotoğraftaki adamın yanına gerçekçi bir aslan ekle"
+      ]
+    ].forEach(([label, selectedMode, prompt]) => {
+      const button = document.createElement("button");
+      button.textContent = label;
+      button.onclick = () => {
+        setMode(selectedMode);
+        $("prompt").value = prompt;
+        $("prompt").focus();
+      };
+      chips.append(button);
+    });
+
+    welcome.append(logo, title, description, chips);
+    root.append(welcome);
+    return;
+  }
+
+  for (const m of c.messages) {
+    const el = document.createElement("div");
+    el.className = "msg " + m.role;
+
+    const body = document.createElement("div");
+    body.className = "body";
+    body.textContent = m.content || "";
+    el.append(body);
+
+    if (m.image) {
+      const img = document.createElement("img");
+      img.src = m.image;
+      img.alt = "AI görseli";
+      el.append(img);
+
+      const link = document.createElement("a");
+      link.href = m.image;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "⬇ Görseli aç / indir";
+      el.append(link);
+    }
+
+    root.append(el);
+  }
+
+  root.scrollTop = root.scrollHeight;
+}
+
+function setUser(u) {
+  if (user?.id === u?.id) return;
+  user = u;
+  $("auth").hidden = !!u;
+
+  if (!u) {
+    chats = [];
+    current = null;
+    render();
+    return;
+  }
+
+  $("userEmail").textContent = u.email || "Hesabım";
+
+  try {
+    chats = JSON.parse(
+      localStorage.getItem("can-software-chats-" + u.id) || "[]"
+    );
+    if (!Array.isArray(chats)) chats = [];
+  } catch {
+    chats = [];
+  }
+
+  chats = chats.filter(c => c && Array.isArray(c.messages));
+
+  if (chats.length) {
+    current = chats[0].id;
+    render();
+  } else {
+    newChat();
+  }
+}
+
+$("authForm").onsubmit = async event => {
+  event.preventDefault();
+
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  $("authError").textContent = "";
+
+  const result = registerMode
+    ? await supa.auth.signUp({ email, password })
+    : await supa.auth.signInWithPassword({ email, password });
+
+  $("authError").textContent =
+    result.error?.message ||
+    (
+      registerMode && !result.data.session
+        ? "E-posta doğrulama bağlantını kontrol et."
+        : ""
+    );
+};
+
+$("register").onclick = () => {
+  registerMode = !registerMode;
+  $("login").textContent = registerMode ? "Üye Ol" : "Giriş Yap";
+  $("register").textContent = registerMode
+    ? "Giriş ekranına dön"
+    : "Hesap oluştur";
+};
+
+$("google").onclick = async () => {
+  const { error } = await supa.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: location.origin }
+  });
+  if (error) $("authError").textContent = error.message;
+};
+
+$("logout").onclick = async () => {
+  const { error } = await supa.auth.signOut();
+  if (error) status(error.message);
+};
+
+supa.auth.onAuthStateChange((event, session) => {
+  setUser(session?.user || null);
+});
+
+supa.auth.getSession().then(({ data }) => {
+  setUser(data.session?.user || null);
+});
+
+$("newChat").onclick = newChat;
+$("menu").onclick = () => {
+  $("sidebar").classList.toggle("open");
+};
+
+$("attach").onclick = () => {
+  if (mode !== "image") $("file").click();
+};
+
+function clearFile() {
+  file = null;
+  if (previewUrl) URL.revokeObjectURL(previewUrl);
+  previewUrl = null;
+  $("file").value = "";
+  $("preview").style.display = "none";
+}
+
+$("removeFile").onclick = clearFile;
+
+$("file").onchange = () => {
+  const selected = $("file").files?.[0];
+  if (!selected) return;
+
+  if (!["image/png", "image/jpeg", "image/webp"].includes(selected.type)) {
+    status("JPG, PNG veya WEBP yükle.");
+    return;
+  }
+
+  if (selected.size > 3 * 1024 * 1024) {
+    status("Fotoğraf en fazla 3 MB olmalı.");
+    return;
+  }
+
+  clearFile();
+  file = selected;
+  previewUrl = URL.createObjectURL(selected);
+  $("thumb").src = previewUrl;
+  $("filename").textContent = selected.name;
+  $("preview").style.display = "flex";
+
+  if (mode === "chat") setMode("edit");
+  status("Fotoğraf seçildi. Düzenleme komutunu yaz.");
+};
+
+async function readJsonResponse(response) {
+  const raw = await response.text();
+  let data;
+
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw Error(
+      "Sunucu JSON döndürmedi (HTTP " +
+      response.status +
+      "). Vercel Functions loglarını kontrol et."
+    );
+  }
+
+  if (!response.ok) {
+    throw Error(
+      data.error || "Sunucu hatası (HTTP " + response.status + ")"
+    );
+  }
+
+  return data;
+}
+
+async function chat(message, history) {
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, history })
+  });
+  return readJsonResponse(response);
+}
+
+async function generateImage(prompt) {
+  const response = await fetch("/api/generate-image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt })
+  });
+
+  const type = response.headers.get("content-type") || "";
+
+  if (!response.ok) {
+    const raw = await response.text();
+    let error = "Görsel oluşturulamadı (HTTP " + response.status + ")";
+    try {
+      error = JSON.parse(raw).error || error;
+    } catch {}
+    throw Error(error);
+  }
+
+  if (type.startsWith("image/")) {
+    const blob = await response.blob();
+    if (!blob.size) throw Error("Boş görsel alındı");
+    return URL.createObjectURL(blob);
+  }
+
+  const data = await readJsonResponse(response.clone());
+
+  if (data.url?.startsWith("https://")) {
+    return data.url;
+  }
+
+  throw Error("Görsel servisi geçerli görsel döndürmedi");
+}
+
+async function editImage(selected, command) {
+  if (selected.size > 3 * 1024 * 1024) {
+    throw Error("Fotoğraf 3 MB sınırını aşıyor");
+  }
+
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      resolve(String(reader.result).split(",")[1]);
+    };
+    reader.onerror = () => reject(Error("Fotoğraf okunamadı"));
+    reader.readAsDataURL(selected);
+  });
+
+  const response = await fetch("/api/edit-image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      image: base64,
+      prompt: command
+    })
+  });
+
+  const data = await readJsonResponse(response);
+
+  if (
+    typeof data.url !== "string" ||
+    !data.url.startsWith("https://")
+  ) {
+    throw Error("Düzenlenmiş fotoğraf bağlantısı bulunamadı");
+  }
+
+  return data.url;
+}
+
+async function send() {
+  if (busy) return;
+
+  const message = $("prompt").value.trim();
+
+  if (!message) {
+    status("Önce mesaj yaz.");
+    return;
+  }
+
+  const c = active();
+  if (!c) return;
+
+  const selected = file;
+  const selectedMode = mode;
+
+  if (selectedMode === "edit" && !selected) {
+    status("Önce fotoğraf yükle.");
+    return;
+  }
+
+  const history = c.messages.slice(-10).map(m => ({
+    role: m.role,
+    content: m.content
+  }));
+
+  if (c.title === "Yeni sohbet") {
+    c.title = message.slice(0, 45);
+  }
+
+  busy = true;
+  $("send").disabled = true;
+  $("prompt").value = "";
+  clearFile();
+
+  add(
+    c,
+    "user",
+    (selected ? "📷 Fotoğraf yüklendi\n" : "") + message
+  );
+
+  try {
+    if (selectedMode === "image") {
+      status("🎨 Görsel oluşturuluyor...");
+      const result = await generateImage(message);
+      add(c, "assistant", "🎨 Görsel oluşturuldu.", result);
+
+    } else if (selectedMode === "edit") {
+      status("✨ Fotoğraf düzenleniyor...");
+      const result = await editImage(selected, message);
+      add(c, "assistant", "✨ Fotoğraf düzenlendi.", result);
+
+    } else {
+      status("CAN SOFTWARE AI düşünüyor...");
+      const data = await chat(message, history);
+
+      add(
+        c,
+        "assistant",
+        (data.reply || data.response || data.message || "Boş yanıt") +
+        (
+          data.truncated
+            ? "\n\n⚠️ Yanıt sınırına ulaşıldı. Devamını isteyebilirsin."
+            : ""
+        )
+      );
+    }
+
+    status("");
+  } catch (error) {
+    add(
+      c,
+      "assistant",
+      "⚠️ İşlem tamamlanamadı: " + error.message
+    );
+    status(error.message);
+  } finally {
+    busy = false;
+    $("send").disabled = false;
+  }
+}
+
+$("send").onclick = send;
+
+$("prompt").onkeydown = event => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    send();
+  }
+};
+
+setMode("chat");
+</script>
+</body>
+</html>
+

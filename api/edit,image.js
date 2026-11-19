@@ -1,119 +1,76 @@
 
+import { Client, handle_file } from "@gradio/client";
+
+export const config = {
+  maxDuration: 60
+};
+
+const SPACE = "kulkas2pintu/QWEN_EDIT_IMAGE";
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
-      error: "POST gerekli."
-    });
-  }
-
-  const token = process.env.HF_TOKEN;
-
-  if (!token) {
-    return res.status(503).json({
-      error: "Vercel'e HF_TOKEN eklenmeli."
-    });
-  }
-
-  const prompt =
-    typeof req.body?.prompt === "string"
-      ? req.body.prompt.trim()
-      : "";
-
-  if (!prompt || prompt.length > 1500) {
-    return res.status(400).json({
-      error: "Görsel açıklaması 1-1500 karakter olmalı."
+      error: "POST isteği gerekli."
     });
   }
 
   try {
-    const controller = new AbortController();
+    const { image, prompt } = req.body || {};
 
-    const timeout = setTimeout(
-      () => controller.abort(),
-      55000
-    );
-
-    let response;
-
-    try {
-      response = await fetch(
-        "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            Accept: "image/png"
-          },
-          body: JSON.stringify({
-            inputs: prompt,
-            parameters: {
-              num_inference_steps: 4
-            }
-          }),
-          signal: controller.signal
-        }
-      );
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (!response.ok) {
-      const detail = (await response.text()).slice(0, 350);
-
-      console.error(
-        "Hugging Face hatası:",
-        response.status,
-        detail
-      );
-
-      let error = "Görsel oluşturulamadı.";
-
-      if ([401, 403].includes(response.status)) {
-        error = "API anahtarı geçersiz veya model erişimi yok.";
-      } else if (response.status === 402) {
-        error = "Görsel üretim kredisi yetersiz.";
-      } else if (response.status === 429) {
-        error = "Görsel oluşturma kotası doldu.";
-      } else {
-        error = `Görsel servisi hatası (${response.status}).`;
-      }
-
-      return res.status(502).json({ error });
-    }
-
-    const contentType =
-      response.headers.get("content-type") || "";
-
-    if (!contentType.startsWith("image/")) {
-      return res.status(502).json({
-        error: "Servis geçerli bir görsel döndürmedi."
+    if (
+      typeof prompt !== "string" ||
+      !prompt.trim() ||
+      prompt.length > 1500
+    ) {
+      return res.status(400).json({
+        error: "Düzenleme komutu yaz."
       });
     }
 
-    const buffer = Buffer.from(
-      await response.arrayBuffer()
-    );
-
-    if (buffer.length > 8 * 1024 * 1024) {
-      return res.status(502).json({
-        error: "Oluşturulan görsel çok büyük."
+    if (
+      typeof image !== "string" ||
+      image.length > 4500000 ||
+      !/^[A-Za-z0-9+/=]+$/.test(image)
+    ) {
+      return res.status(400).json({
+        error: "Geçerli ve 3 MB'den küçük fotoğraf yükle."
       });
     }
 
-    res.setHeader("Content-Type", contentType);
-    res.setHeader("Cache-Control", "no-store");
+    const buffer = Buffer.from(image, "base64");
 
-    return res.status(200).send(buffer);
+    const client = await Client.connect(SPACE);
+
+    const result = await client.predict("/edit", {
+      image: handle_file(buffer),
+      prompt: prompt.trim(),
+      lora_adapter: "",
+      guidance_scale: 2.5,
+      steps: 6,
+      output_size: 1024,
+      fix_hands: true
+    });
+
+    const output = result?.data?.[0];
+
+    const url =
+      typeof output === "string"
+        ? output
+        : output?.url;
+
+    if (!url || !url.startsWith("https://")) {
+      throw new Error("AI geçerli görsel döndürmedi.");
+    }
+
+    return res.status(200).json({ url });
 
   } catch (error) {
-    console.error("Görsel üretim hatası:", error);
+    console.error("AI edit error:", error);
 
-    return res.status(502).json({
+    return res.status(503).json({
       error:
-        error.name === "AbortError"
-          ? "Görsel oluşturma zaman aşımına uğradı."
-          : "Görsel servisine bağlanılamadı."
+        "Ücretsiz AI düzenleme servisi yanıt vermedi. " +
+        "Servis kapalı, yoğun veya API değişmiş olabilir."
     });
   }
 }

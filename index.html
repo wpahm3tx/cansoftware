@@ -1,29 +1,805 @@
 
-async function editViaServer(file, prompt) {
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>CAN SOFTWARE AI</title>
+<style>
+:root {
+  --bg:#fff;
+  --side:#f6f6f7;
+  --text:#171717;
+  --muted:#777;
+  --border:#e5e5e8;
+  --bubble:#f1f1f3;
+  --accent:#7c3aed;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0;
+  font-family:Arial,system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+button,input,textarea { font:inherit; }
+button { cursor:pointer; }
+button:disabled { opacity:.5;cursor:not-allowed; }
+.app { display:flex;height:100dvh; }
+.sidebar {
+  width:260px;
+  flex-shrink:0;
+  background:var(--side);
+  border-right:1px solid var(--border);
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+}
+.brand {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:bold;
+}
+.logo {
+  width:43px;
+  height:43px;
+  display:grid;
+  place-items:center;
+  border-radius:13px;
+  color:white;
+  font-weight:900;
+  font-size:18px;
+  background:linear-gradient(135deg,#151515,#7c3aed);
+}
+.brand small { display:block;color:var(--muted);font-size:11px; }
+button {
+  border:1px solid var(--border);
+  border-radius:11px;
+  padding:10px 13px;
+  background:white;
+  color:inherit;
+}
+button:hover { background:#eee; }
+.primary { background:#171717;color:white;border-color:#171717; }
+.primary:hover { background:#333; }
+.history { flex:1;overflow:auto; }
+.history button {
+  display:block;
+  width:100%;
+  text-align:left;
+  margin:5px 0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  background:transparent;
+}
+.account { font-size:12px;overflow-wrap:anywhere; }
+.main {
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+}
+header {
+  padding:16px 22px;
+  border-bottom:1px solid var(--border);
+  font-weight:bold;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+header small { color:var(--muted);font-weight:normal; }
+.messages {
+  flex:1;
+  overflow:auto;
+  padding:25px max(18px,calc((100% - 800px)/2));
+}
+.welcome { text-align:center;margin:13vh auto 30px; }
+.welcome h1 { font-size:30px; }
+.welcome p { color:var(--muted); }
+.message {
+  margin:16px 0;
+  line-height:1.65;
+  overflow-wrap:anywhere;
+  white-space:pre-wrap;
+}
+.message.user {
+  background:var(--bubble);
+  border-radius:17px;
+  padding:13px 17px;
+  max-width:82%;
+  margin-left:auto;
+  width:fit-content;
+}
+.message.assistant { padding:8px 0; }
+.message img {
+  max-width:100%;
+  max-height:480px;
+  border-radius:13px;
+  display:block;
+  margin-top:10px;
+}
+.message a { color:var(--accent); }
+.composer {
+  padding:12px max(18px,calc((100% - 800px)/2)) 20px;
+}
+.upload-preview {
+  display:none;
+  padding:10px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-bottom:9px;
+  align-items:center;
+  gap:10px;
+}
+.upload-preview img {
+  width:65px;
+  height:65px;
+  object-fit:cover;
+  border-radius:8px;
+}
+.compose-box {
+  display:flex;
+  align-items:end;
+  gap:8px;
+  border:1px solid #ccc;
+  border-radius:22px;
+  padding:10px;
+}
+.compose-box textarea {
+  flex:1;
+  border:0;
+  outline:0;
+  resize:none;
+  padding:10px 3px;
+  min-width:0;
+  max-height:160px;
+  background:transparent;
+  color:inherit;
+}
+.round { border:0;font-size:23px; }
+.hint { text-align:center;color:var(--muted);font-size:11px;margin-top:9px; }
+.status { font-size:12px;color:var(--muted); }
+.auth {
+  position:fixed;
+  inset:0;
+  z-index:10;
+  background:#f7f7fb;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+}
+.auth[hidden] { display:none; }
+.auth-card {
+  width:100%;
+  max-width:390px;
+  background:white;
+  border:1px solid #ddd;
+  border-radius:22px;
+  padding:30px;
+  box-shadow:0 15px 60px #0001;
+}
+.auth-card h1 { margin:14px 0; }
+.auth-card input {
+  width:100%;
+  padding:13px;
+  border:1px solid #ddd;
+  border-radius:10px;
+  margin-bottom:12px;
+}
+.auth-card button { width:100%;margin:5px 0; }
+.error { color:#c62828;font-size:13px; }
+#menuBtn { display:none; }
+@media(max-width:700px) {
+  .sidebar {
+    position:fixed;
+    z-index:5;
+    left:0;
+    top:0;
+    bottom:0;
+    transform:translateX(-105%);
+    transition:.2s;
+    box-shadow:10px 0 30px #0002;
+  }
+  .sidebar.open { transform:translateX(0); }
+  #menuBtn { display:inline-block; }
+  header { padding:10px; }
+  .messages { padding:15px; }
+  .composer { padding:10px; }
+  .message.user { max-width:94%; }
+}
+</style>
+</head>
+<body>
+
+<div class="auth" id="authScreen">
+  <div class="auth-card">
+    <div class="logo">CAN</div>
+    <h1>CAN SOFTWARE AI</h1>
+    <p>Yapay zekâ dünyasına hoş geldin.</p>
+
+    <form id="authForm">
+      <input id="email" type="email"
+        placeholder="E-posta" required>
+      <input id="password" type="password"
+        placeholder="Şifre" minlength="6" required>
+      <button class="primary" id="authSubmit">
+        Giriş yap
+      </button>
+    </form>
+
+    <button id="googleBtn">Google ile devam et</button>
+    <button id="switchAuth">Hesabın yok mu? Üye ol</button>
+    <p class="error" id="authError"></p>
+  </div>
+</div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo">CAN</div>
+      <div>CAN SOFTWARE<small>AI PLATFORM</small></div>
+    </div>
+
+    <button class="primary" id="newChat">＋ Yeni sohbet</button>
+
+    <strong style="font-size:12px">SOHBET GEÇMİŞİ</strong>
+    <div class="history" id="history"></div>
+
+    <div class="account">
+      <div id="accountEmail"></div>
+      <button id="logoutBtn">Çıkış yap</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header>
+      <div>
+        <button id="menuBtn">☰</button>
+        CAN SOFTWARE AI
+        <div><small>Akıllı sohbet ve görsel stüdyo</small></div>
+      </div>
+      <span>✦</span>
+    </header>
+
+    <section class="messages" id="messages"></section>
+
+    <section class="composer">
+      <div class="upload-preview" id="uploadPreview">
+        <img id="uploadThumb" alt="Seçilen fotoğraf">
+        <span id="uploadName"></span>
+        <button id="removeUpload" title="Fotoğrafı kaldır">✕</button>
+      </div>
+
+      <div class="compose-box">
+        <button class="round" id="attachBtn" title="Fotoğraf yükle">＋</button>
+        <input type="file" id="fileInput"
+          accept="image/png,image/jpeg,image/webp" hidden>
+        <textarea id="input" rows="2"
+          placeholder="CAN SOFTWARE AI'ye mesaj yaz..."></textarea>
+        <button class="primary" id="sendBtn">➤</button>
+      </div>
+
+      <div class="hint">
+        Fotoğraf yüklemek için + tuşuna bas.
+        Görsel oluşturmak için "Görsel oluştur:" yaz.
+      </div>
+      <div class="status" id="status"></div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+<script>
+"use strict";
+
+const SUPABASE_URL =
+  "https://xllmhgabuzaledxqqufe.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_7BnfXFJWwC77ddC8jTXhfA_gvoMYDrL";
+
+const $ = id => document.getElementById(id);
+
+let supa = null;
+let userId = null;
+let registerMode = false;
+let chats = [];
+let currentId = null;
+let selectedFile = null;
+let selectedPreview = null;
+let busy = false;
+
+function storageKey() {
+  return "can-software-chats-" + userId;
+}
+
+function save() {
+  if (!userId) return;
+  try {
+    localStorage.setItem(storageKey(), JSON.stringify(chats));
+  } catch(e) {
+    console.warn("Sohbet kaydedilemedi:", e);
+  }
+}
+
+function uid() {
+  return crypto.randomUUID();
+}
+
+function currentChat() {
+  return chats.find(c => c.id === currentId);
+}
+
+function newChat() {
+  const chat = {
+    id:uid(),
+    title:"Yeni sohbet",
+    messages:[],
+    updated:Date.now()
+  };
+  chats.unshift(chat);
+  currentId = chat.id;
+  save();
+  render();
+  $("sidebar").classList.remove("open");
+}
+
+function renderHistory() {
+  const root = $("history");
+  root.replaceChildren();
+
+  for (const chat of chats) {
+    const btn = document.createElement("button");
+    btn.textContent = "💬 " + chat.title;
+    btn.onclick = () => {
+      currentId = chat.id;
+      render();
+      $("sidebar").classList.remove("open");
+    };
+    root.append(btn);
+  }
+}
+
+function render() {
+  renderHistory();
+  const root = $("messages");
+  root.replaceChildren();
+
+  const chat = currentChat();
+  if (!chat || !chat.messages.length) {
+    const welcome = document.createElement("div");
+    welcome.className = "welcome";
+    welcome.innerHTML =
+      "<div style='font-size:45px'>✦</div>" +
+      "<h1>Bugün sana nasıl yardımcı olabilirim?</h1>" +
+      "<p>Mesaj yaz, görsel oluştur veya fotoğraf düzenle.</p>";
+    root.append(welcome);
+    return;
+  }
+
+  for (const m of chat.messages) {
+    const article = document.createElement("article");
+    article.className = "message " + m.role;
+
+    const text = document.createElement("div");
+    text.textContent = m.content || "";
+    article.append(text);
+
+    if (m.imageUrl && /^https?:\/\//.test(m.imageUrl)) {
+      const img = document.createElement("img");
+      img.src = m.imageUrl;
+      img.alt = "AI görseli";
+      article.append(img);
+
+      const link = document.createElement("a");
+      link.href = m.imageUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "Görseli aç / indir";
+      article.append(link);
+    }
+
+    root.append(article);
+  }
+  root.scrollTop = root.scrollHeight;
+}
+
+function addMessage(chat, role, content, imageUrl) {
+  chat.messages.push({role,content,imageUrl});
+  chat.updated = Date.now();
+  save();
+  if (currentId === chat.id) render();
+}
+
+function setStatus(text) {
+  $("status").textContent = text || "";
+}
+
+function showError(error) {
+  const message = error?.message || "Bilinmeyen hata";
+  setStatus("⚠️ " + message);
+}
+
+function clearUpload() {
+  selectedFile = null;
+  if (selectedPreview) URL.revokeObjectURL(selectedPreview);
+  selectedPreview = null;
+  $("fileInput").value = "";
+  $("uploadPreview").style.display = "none";
+}
+
+$("attachBtn").onclick = () => $("fileInput").click();
+
+$("fileInput").onchange = () => {
+  const file = $("fileInput").files?.[0];
+  if (!file) return;
+
+  if (!["image/jpeg","image/png","image/webp"].includes(file.type)) {
+    setStatus("JPG, PNG veya WEBP seç.");
+    return;
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    setStatus("Fotoğraf en fazla 15 MB olabilir.");
+    return;
+  }
+
+  clearUpload();
+  selectedFile = file;
+  selectedPreview = URL.createObjectURL(file);
+  $("uploadThumb").src = selectedPreview;
+  $("uploadName").textContent = file.name;
+  $("uploadPreview").style.display = "flex";
+  setStatus("Fotoğraf seçildi. Ne değiştirmek istediğini yaz.");
+};
+
+$("removeUpload").onclick = clearUpload;
+
+async function shrinkImage(file) {
+  const bitmap = await createImageBitmap(file);
+  try {
+    const scale = Math.min(
+      1,
+      1024 / Math.max(bitmap.width, bitmap.height)
+    );
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1,Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1,Math.round(bitmap.height * scale));
+
+    canvas.getContext("2d").drawImage(
+      bitmap,0,0,canvas.width,canvas.height
+    );
+
+    let quality = 0.82;
+    let data;
+
+    do {
+      data = canvas.toDataURL("image/jpeg",quality);
+      quality -= 0.12;
+    } while (data.length > 4000000 && quality >= 0.34);
+
+    if (data.length > 4000000) {
+      throw new Error("Fotoğraf küçültülemedi.");
+    }
+
+    return data.split(",")[1];
+  } finally {
+    bitmap.close();
+  }
+}
+
+async function editPhoto(file, prompt) {
   const image = await shrinkImage(file);
 
   const response = await fetch("/api/edit-image", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      image,
-      prompt
-    })
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({image,prompt})
   });
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
     throw new Error(
-      [data.error, data.detail].filter(Boolean).join(" ")
+      [data.error,data.detail].filter(Boolean).join(" ") ||
+      "Fotoğraf düzenleme API hatası: " + response.status
     );
   }
 
-  if (!data.url) {
-    throw new Error("Düzenlenmiş fotoğraf adresi bulunamadı.");
+  if (!data.url) throw new Error("Servis görsel döndürmedi.");
+  return data.url;
+}
+
+async function chatReply(message, history) {
+  const response = await fetch("/api/chat", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({message,history})
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || "Sohbet servisi hatası.");
   }
 
-  return data;
+  return data.reply || "Boş yanıt alındı.";
 }
+
+const GRADIO =
+  "https://mrfakename-z-image-turbo.hf.space";
+
+function parseGradio(text) {
+  const blocks = text.split(/\r?\n\r?\n/);
+
+  for (const block of blocks) {
+    if (block.includes("event: error")) {
+      throw new Error("Görsel oluşturma servisi hata verdi.");
+    }
+
+    if (block.includes("event: complete")) {
+      const line = block.split(/\r?\n/)
+        .filter(x => x.startsWith("data:"))
+        .map(x => x.slice(5).trim())
+        .join("");
+
+      const result = JSON.parse(line);
+      const first = Array.isArray(result) ? result[0] : result;
+      const url = typeof first === "string"
+        ? first : first?.url || first?.path;
+
+      if (!url) throw new Error("Görsel adresi bulunamadı.");
+      return url.startsWith("/") ? GRADIO + url : url;
+    }
+  }
+  throw new Error("Görsel servisi sonuç döndürmedi.");
+}
+
+async function generateImage(prompt) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(),120000);
+
+  try {
+    const start = await fetch(
+      GRADIO + "/gradio_api/call/v2/generate_image",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          data:[prompt,1024,1024,9,0,true]
+        }),
+        signal:controller.signal
+      }
+    );
+
+    if (!start.ok) {
+      throw new Error("Görsel servisi isteği reddetti.");
+    }
+
+    const job = await start.json();
+    if (!job.event_id) {
+      throw new Error("İşlem kimliği alınamadı.");
+    }
+
+    const result = await fetch(
+      GRADIO + "/gradio_api/call/generate_image/" +
+      encodeURIComponent(job.event_id),
+      {signal:controller.signal}
+    );
+
+    if (!result.ok) {
+      throw new Error("Görsel sonucu alınamadı.");
+    }
+
+    const url = parseGradio(await result.text());
+
+    if (!/^https?:\/\//.test(url)) {
+      throw new Error("Geçersiz görsel bağlantısı.");
+    }
+    return url;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function send() {
+  if (busy) return;
+
+  const message = $("input").value.trim();
+  if (!message) {
+    setStatus("Önce bir mesaj yaz.");
+    return;
+  }
+
+  const chat = currentChat();
+  if (!chat) return;
+
+  const file = selectedFile;
+  const history = chat.messages
+    .filter(m => m.role === "user" || m.role === "assistant")
+    .slice(-10)
+    .map(m => ({role:m.role,content:m.content}));
+
+  if (chat.title === "Yeni sohbet") {
+    chat.title = message.slice(0,45);
+  }
+
+  busy = true;
+  $("sendBtn").disabled = true;
+  $("input").value = "";
+  clearUpload();
+
+  addMessage(
+    chat,"user",
+    (file ? "📷 Fotoğraf: " + file.name + "\n" : "") + message
+  );
+
+  try {
+    if (file) {
+      setStatus("Fotoğraf yapay zekâ ile düzenleniyor...");
+      const url = await editPhoto(file,message);
+      addMessage(chat,"assistant","Düzenlenmiş fotoğraf hazır.",url);
+
+    } else if (
+      /^(görsel oluştur|resim oluştur|fotoğraf oluştur|bir görsel oluştur)\s*:/i
+        .test(message)
+    ) {
+      setStatus("Görsel oluşturuluyor...");
+      const prompt = message.replace(/^[^:]+:/,"").trim();
+      if (!prompt) throw new Error("Görsel açıklaması eksik.");
+      const url = await generateImage(prompt);
+      addMessage(chat,"assistant","Görsel hazır.",url);
+
+    } else {
+      setStatus("CAN SOFTWARE AI düşünüyor...");
+      const reply = await chatReply(message,history);
+      addMessage(chat,"assistant",reply);
+    }
+
+    setStatus("");
+  } catch(error) {
+    showError(error);
+    addMessage(
+      chat,"assistant",
+      "⚠️ İşlem tamamlanamadı: " + (error.message || "Hata")
+    );
+  } finally {
+    busy = false;
+    $("sendBtn").disabled = false;
+    $("input").focus();
+  }
+}
+
+$("sendBtn").onclick = send;
+$("input").onkeydown = e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
+};
+
+$("newChat").onclick = newChat;
+$("menuBtn").onclick = () =>
+  $("sidebar").classList.toggle("open");
+
+function authError(message) {
+  $("authError").textContent = message || "";
+}
+
+function setUser(user) {
+  const nextId = user?.id || null;
+  if (nextId === userId) return;
+
+  userId = nextId;
+
+  if (!userId) {
+    $("authScreen").hidden = false;
+    chats = [];
+    currentId = null;
+    render();
+    return;
+  }
+
+  $("authScreen").hidden = true;
+  $("accountEmail").textContent = user.email || "Hesabım";
+
+  try {
+    chats = JSON.parse(localStorage.getItem(storageKey()) || "[]");
+    if (!Array.isArray(chats)) chats = [];
+  } catch(e) {
+    chats = [];
+  }
+
+  chats = chats.filter(c =>
+    c && typeof c.id === "string" && Array.isArray(c.messages)
+  );
+
+  if (chats.length) {
+    currentId = chats[0].id;
+    render();
+  } else {
+    newChat();
+  }
+}
+
+$("switchAuth").onclick = () => {
+  registerMode = !registerMode;
+  $("authSubmit").textContent = registerMode ? "Üye ol" : "Giriş yap";
+  $("switchAuth").textContent = registerMode
+    ? "Zaten hesabın var mı? Giriş yap"
+    : "Hesabın yok mu? Üye ol";
+  authError("");
+};
+
+$("authForm").onsubmit = async e => {
+  e.preventDefault();
+  if (!supa) return authError("Supabase bağlantısı yok.");
+
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  $("authSubmit").disabled = true;
+
+  try {
+    const result = registerMode
+      ? await supa.auth.signUp({
+          email,password,
+          options:{emailRedirectTo:location.origin}
+        })
+      : await supa.auth.signInWithPassword({email,password});
+
+    if (result.error) throw result.error;
+
+    if (registerMode && !result.data.session) {
+      authError("E-posta doğrulama bağlantını kontrol et.");
+    }
+  } catch(error) {
+    authError(error.message);
+  } finally {
+    $("authSubmit").disabled = false;
+  }
+};
+
+$("googleBtn").onclick = async () => {
+  if (!supa) return authError("Supabase bağlantısı yok.");
+  const {error} = await supa.auth.signInWithOAuth({
+    provider:"google",
+    options:{redirectTo:location.origin}
+  });
+  if (error) authError(error.message);
+};
+
+$("logoutBtn").onclick = async () => {
+  if (!supa) return;
+  const {error} = await supa.auth.signOut();
+  if (error) return setStatus(error.message);
+  setUser(null);
+};
+
+try {
+  if (!window.supabase?.createClient) {
+    throw new Error("Supabase kütüphanesi yüklenemedi.");
+  }
+
+  supa = window.supabase.createClient(
+    SUPABASE_URL,SUPABASE_KEY
+  );
+
+  supa.auth.onAuthStateChange((_event,session) => {
+    setUser(session?.user || null);
+  });
+
+  supa.auth.getSession().then(({data,error}) => {
+    if (error) authError(error.message);
+    setUser(data?.session?.user || null);
+  }).catch(error => authError(error.message));
+
+} catch(error) {
+  authError(error.message);
+}
+</script>
+</body>
+</html>

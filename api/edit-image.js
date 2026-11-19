@@ -1,5 +1,6 @@
 
 import { Client } from "@gradio/client";
+import sharp from "sharp";
 
 export const config = {
   maxDuration: 60
@@ -9,25 +10,84 @@ const SPACE =
   process.env.IMAGE_EDIT_SPACE ||
   "kulkas2pintu/QWEN_EDIT_IMAGE";
 
-const MAX_INPUT_BYTES = 3 * 1024 * 1024;
-const MAX_OUTPUT_BYTES = 5 * 1024 * 1024;
+const MAX_INPUT = 3 * 1024 * 1024;
+const MAX_OUTPUT = 8 * 1024 * 1024;
 
-function findImage(value) {
+function getMime(buffer) {
+  if (
+    buffer.length >= 3 &&
+    buffer[0] === 0xff &&
+    buffer[1] === 0xd8 &&
+    buffer[2] === 0xff
+  ) return "image/jpeg";
+
+  if (
+    buffer.length >= 8 &&
+    buffer.subarray(0, 8).equals(
+      Buffer.from("89504e470d0a1a0a", "hex")
+    )
+  ) return "image/png";
+
+  if (
+    buffer.length >= 12 &&
+    buffer.toString("ascii", 0, 4) === "RIFF" &&
+    buffer.toString("ascii", 8, 12) === "WEBP"
+  ) return "image/webp";
+
+  return null;
+}
+
+function readInput(image) {
+  if (typeof image !== "string") {
+    throw new Error("Fotoğraf yüklenmedi.");
+  }
+
+  const base64 = image.replace(
+    /^data:image\/(?:png|jpeg|jpg|webp);base64,/i,
+    ""
+  );
+
+  if (
+    !base64 ||
+    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(base64)
+  ) {
+    throw new Error("Geçersiz fotoğraf verisi.");
+  }
+
+  const buffer = Buffer.from(base64, "base64");
+
+  if (!buffer.length || buffer.length > MAX_INPUT) {
+    throw new Error(
+      "Fotoğraf en fazla 3 MB olabilir."
+    );
+  }
+
+  const mime = getMime(buffer);
+
+  if (!mime) {
+    throw new Error(
+      "Yalnızca PNG, JPG veya WEBP yükle."
+    );
+  }
+
+  return { buffer, mime };
+}
+
+function findOutput(value) {
   if (!value) return null;
 
   if (typeof value === "string") {
     if (
       value.startsWith("https://") ||
       value.startsWith("data:image/")
-    ) {
-      return value;
-    }
+    ) return value;
+
     return null;
   }
 
   if (Array.isArray(value)) {
     for (const item of value) {
-      const found = findImage(item);
+      const found = findOutput(item);
       if (found) return found;
     }
     return null;
@@ -38,10 +98,10 @@ function findImage(value) {
       "url",
       "image",
       "path",
-      "data",
-      "value"
+      "value",
+      "data"
     ]) {
-      const found = findImage(value[key]);
+      const found = findOutput(value[key]);
       if (found) return found;
     }
   }
@@ -49,120 +109,54 @@ function findImage(value) {
   return null;
 }
 
-function detectMime(buffer) {
-  if (
-    buffer.length >= 3 &&
-    buffer[0] === 0xff &&
-    buffer[1] === 0xd8 &&
-    buffer[2] === 0xff
-  ) {
-    return "image/jpeg";
-  }
+function allowedUrl(value) {
+  const url = new URL(value);
 
-  if (
-    buffer.length >= 8 &&
-    buffer.subarray(0, 8).equals(
-      Buffer.from("89504e470d0a1a0a", "hex")
-    )
-  ) {
-    return "image/png";
-  }
-
-  if (
-    buffer.length >= 12 &&
-    buffer.toString("ascii", 0, 4) === "RIFF" &&
-    buffer.toString("ascii", 8, 12) === "WEBP"
-  ) {
-    return "image/webp";
-  }
-
-  return null;
-}
-
-function parseImage(input) {
-  if (typeof input !== "string") {
-    throw new Error("Fotoğraf yüklenmedi.");
-  }
-
-  const base64 = input.replace(
-    /^data:image\/(?:png|jpeg|jpg|webp);base64,/i,
-    ""
-  );
-
-  if (
-    !base64 ||
-    !/^[A-Za-z0-9+/]*={0,2}$/.test(base64)
-  ) {
-    throw new Error("Geçersiz Base64 fotoğraf.");
-  }
-
-  const buffer = Buffer.from(base64, "base64");
-
-  if (
-    buffer.length === 0 ||
-    buffer.length > MAX_INPUT_BYTES
-  ) {
-    throw new Error(
-      "Fotoğraf 3 MB'den küçük olmalı."
-    );
-  }
-
-  const mime = detectMime(buffer);
-
-  if (!mime) {
-    throw new Error(
-      "Yalnızca JPG, PNG ve WEBP destekleniyor."
-    );
-  }
-
-  return { buffer, mime };
-}
-
-async function downloadImage(url) {
-  if (url.startsWith("data:image/")) {
-    const match = url.match(
-      /^data:(image\/(?:png|jpeg|webp));base64,(.+)$/s
-    );
-
-    if (!match) {
-      throw new Error("Geçersiz görsel verisi.");
-    }
-
-    const buffer = Buffer.from(match[2], "base64");
-
-    if (buffer.length > MAX_OUTPUT_BYTES) {
-      throw new Error("Çıktı görseli çok büyük.");
-    }
-
-    return {
-      buffer,
-      mime: detectMime(buffer)
-    };
-  }
-
-  const parsed = new URL(url);
-
-  if (parsed.protocol !== "https:") {
+  if (url.protocol !== "https:") {
     throw new Error("Güvensiz görsel adresi.");
   }
 
-  const allowedHosts = [
+  const hosts = [
     "huggingface.co",
     "hf.space",
     "gradio.live"
   ];
 
-  const allowed = allowedHosts.some(
+  const allowed = hosts.some(
     host =>
-      parsed.hostname === host ||
-      parsed.hostname.endsWith("." + host)
+      url.hostname === host ||
+      url.hostname.endsWith("." + host)
   );
 
   if (!allowed) {
     throw new Error(
-      "Görsel beklenmeyen bir sunucudan geldi."
+      "Beklenmeyen görsel sunucusu."
     );
   }
+
+  return url.toString();
+}
+
+async function loadOutput(value) {
+  if (value.startsWith("data:image/")) {
+    const match = value.match(
+      /^data:image\/(?:png|jpeg|webp);base64,(.+)$/s
+    );
+
+    if (!match) {
+      throw new Error("Geçersiz görsel çıktısı.");
+    }
+
+    const buffer = Buffer.from(match[1], "base64");
+
+    if (buffer.length > MAX_OUTPUT) {
+      throw new Error("Çıktı çok büyük.");
+    }
+
+    return buffer;
+  }
+
+  const url = allowedUrl(value);
 
   const response = await fetch(url, {
     signal: AbortSignal.timeout(20000),
@@ -175,31 +169,40 @@ async function downloadImage(url) {
     );
   }
 
-  const length = Number(
+  const size = Number(
     response.headers.get("content-length") || 0
   );
 
-  if (length > MAX_OUTPUT_BYTES) {
-    throw new Error("Çıktı görseli çok büyük.");
+  if (size > MAX_OUTPUT) {
+    throw new Error("Çıktı çok büyük.");
   }
 
-  const buffer = Buffer.from(
-    await response.arrayBuffer()
-  );
+  const chunks = [];
+  let total = 0;
 
-  if (buffer.length > MAX_OUTPUT_BYTES) {
-    throw new Error("Çıktı görseli çok büyük.");
+  if (!response.body) {
+    throw new Error("Boş görsel yanıtı.");
   }
 
-  const mime = detectMime(buffer);
+  for await (const chunk of response.body) {
+    total += chunk.length;
 
-  if (!mime) {
+    if (total > MAX_OUTPUT) {
+      throw new Error("Çıktı çok büyük.");
+    }
+
+    chunks.push(chunk);
+  }
+
+  const buffer = Buffer.concat(chunks);
+
+  if (!getMime(buffer)) {
     throw new Error(
-      "Servis görsel yerine başka veri döndürdü."
+      "Servis geçerli görsel dosyası döndürmedi."
     );
   }
 
-  return { buffer, mime };
+  return buffer;
 }
 
 export default async function handler(req, res) {
@@ -222,11 +225,11 @@ export default async function handler(req, res) {
     ) {
       return res.status(400).json({
         success: false,
-        error: "Geçerli düzenleme komutu yaz."
+        error: "Düzenleme komutu yaz."
       });
     }
 
-    const { buffer, mime } = parseImage(image);
+    const input = readInput(image);
 
     const client = await Client.connect(
       SPACE,
@@ -235,12 +238,11 @@ export default async function handler(req, res) {
         : {}
     );
 
-    const blob = new Blob([buffer], {
-      type: mime
-    });
-
     const result = await client.predict("/edit", {
-      image: blob,
+      image: new Blob(
+        [input.buffer],
+        { type: input.mime }
+      ),
       prompt: prompt.trim(),
       lora_adapter: "",
       image2: null,
@@ -254,33 +256,35 @@ export default async function handler(req, res) {
       fix_hands: false
     });
 
-    const imageUrl = findImage(result?.data);
+    const outputUrl = findOutput(result?.data);
 
-    if (!imageUrl) {
+    if (!outputUrl) {
       throw new Error(
-        "AI geçerli görsel çıktısı döndürmedi."
+        "Düzenlenmiş görsel çıktısı bulunamadı."
       );
     }
 
-    const output = await downloadImage(imageUrl);
+    const outputBuffer = await loadOutput(outputUrl);
 
-    if (!output.mime) {
+    const png = await sharp(outputBuffer)
+      .rotate()
+      .png()
+      .toBuffer();
+
+    if (png.length > MAX_OUTPUT) {
       throw new Error(
-        "Oluşturulan görselin biçimi geçersiz."
+        "PNG dosyası izin verilen boyutu aşıyor."
       );
     }
 
-    const base64 = output.buffer.toString("base64");
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="edited-image.png"'
+    );
+    res.setHeader("Content-Length", png.length);
 
-    const dataUrl =
-      `data:${output.mime};base64,${base64}`;
-
-    return res.status(200).json({
-      success: true,
-      url: dataUrl,
-      image: dataUrl,
-      message: "Fotoğraf başarıyla düzenlendi."
-    });
+    return res.status(200).send(png);
 
   } catch (error) {
     console.error(
@@ -295,5 +299,7 @@ export default async function handler(req, res) {
         .slice(0, 400)
     });
   }
+}
+
 }
 

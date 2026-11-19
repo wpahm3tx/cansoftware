@@ -12,8 +12,10 @@
   "dependencies": {
     "@gradio/client": "^1.15.0",
     "@supabase/supabase-js": "^2.49.0",
+    "groq-sdk": "^0.37.0",
     "mammoth": "^1.9.1",
-    "pdf-parse": "^2.4.5"
+    "pdf-parse": "^2.4.5",
+    "sharp": "^0.33.5"
   },
   "engines": {
     "node": ">=20"

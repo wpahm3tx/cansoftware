@@ -1,0 +1,7 @@
+
+{
+  "private": true,
+  "dependencies": {
+    "@gradio/client": "^1.15.0"
+  }
+}

@@ -740,13 +740,23 @@ async function editImage(selected,command){
     })
   });
 
-  let data;
+  
+const raw = await response.text();
 
-  try{
-    data=await response.json();
-  }catch{
-    throw Error("Fotoğraf düzenleme servisi geçersiz yanıt verdi.");
-  }
+let data;
+
+try {
+  data = JSON.parse(raw);
+} catch {
+  console.error("API yanıtı:", raw);
+
+  throw new Error(
+    "Fotoğraf API hatası (HTTP " +
+    response.status +
+    "). Vercel Functions loglarını kontrol et."
+  );
+}
+
 
   if(!response.ok){
     throw Error(data.error||"AI fotoğraf düzenleyemedi.");

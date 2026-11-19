@@ -1,8 +1,21 @@
 
 {
+  "name": "can-software-ai-pro",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
+  "description": "CAN SOFTWARE AI PRO - Yapay Zeka Platformu",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "vercel dev"
+  },
   "dependencies": {
-    "@gradio/client": "^1.15.0"
+    "@gradio/client": "^1.15.0",
+    "@supabase/supabase-js": "^2.49.0",
+    "mammoth": "^1.9.1",
+    "pdf-parse": "^2.4.5"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

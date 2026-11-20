@@ -1,22 +1,19 @@
 
-const SUPABASE_URL =
-  "https://xllmhgabuzaledxqqufe.supabase.co";
-
-const SUPABASE_KEY =
-  "sb_publishable_7BnfXFJWwC77ddC8jTXhfA_gvoMYDrL";
+import { authenticate } from "./_lib.js";
 
 const FOUNDER_EMAIL =
   "ahmetbinarbasi64@gmail.com";
 
+// Redis baglantisi
 async function redis(command) {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (!url || !token) {
-    throw new Error("Upstash ortam değişkenleri eksik.");
+    throw new Error("Upstash ortam degiskenleri eksik.");
   }
 
-  const response = await fetch(url, {
+  const response = await fetch(url.replace(/\/$/, ""), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -26,50 +23,21 @@ async function redis(command) {
   });
 
   if (!response.ok) {
-    throw new Error("Upstash bağlantı hatası.");
+    throw new Error(
+      `Upstash baglanti hatasi: ${response.status}`
+    );
   }
 
   const data = await response.json();
 
   if (data.error) {
-    throw new Error("Redis hatası: " + data.error);
+    throw new Error("Redis hatasi: " + data.error);
   }
 
   return data.result;
 }
 
-async function authenticate(req) {
-  const token = (
-    req.headers.authorization || ""
-  ).replace(/^Bearer\s+/i, "");
-
-  if (!token) {
-    const error = new Error("Giriş yapmalısın.");
-    error.status = 401;
-    throw error;
-  }
-
-  const response = await fetch(
-    `${SUPABASE_URL}/auth/v1/user`,
-    {
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${token}`
-      }
-    }
-  );
-
-  if (!response.ok) {
-    const error = new Error(
-      "Oturum geçersiz. Tekrar Google ile giriş yap."
-    );
-    error.status = 401;
-    throw error;
-  }
-
-  return response.json();
-}
-
+// Kurucu hesabi kontrolu
 function isFounder(user) {
   return (
     (user.email || "").trim().toLowerCase() ===
@@ -78,6 +46,7 @@ function isFounder(user) {
   );
 }
 
+// Kullanici UID kontrolu
 function isValidUUID(value) {
   return (
     typeof value === "string" &&
@@ -85,6 +54,7 @@ function isValidUUID(value) {
   );
 }
 
+// PRO suresi kontrolu
 function activePro(record) {
   if (!record || record.is_pro !== true) {
     return false;
@@ -100,28 +70,31 @@ function activePro(record) {
     expiry > Date.now();
 }
 
+// Ana API
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
   if (!["GET", "POST"].includes(req.method)) {
     return res.status(405).json({
-      error: "Desteklenmeyen işlem."
+      success: false,
+      error: "Desteklenmeyen islem."
     });
   }
 
   try {
+    // Ortak Supabase oturum dogrulamasi
     const user = await authenticate(req);
+
     const founder = isFounder(user);
 
+    // GET: Uyelik bilgilerini getir
     if (req.method === "GET") {
-      // Kullanıcıyı yönetici listesine kaydet.
       await redis([
         "SADD",
         "membership:users",
         user.id
       ]);
 
-      // Kullanıcının e-posta adresini sakla.
       await redis([
         "HSET",
         `membership:profile:${user.id}`,
@@ -147,6 +120,7 @@ export default async function handler(req, res) {
       const pro = founder || activePro(record);
 
       return res.status(200).json({
+        success: true,
         user_id: user.id,
         email: user.email || "",
         role: founder
@@ -160,10 +134,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // POST: Yalnızca kurucu üyelik değiştirebilir.
+    // POST: Sadece kurucu uye duzenleyebilir
     if (!founder) {
       return res.status(403).json({
-        error: "Bu işlem için kurucu yetkisi gerekiyor."
+        success: false,
+        error: "Bu islem icin kurucu yetkisi gerekiyor."
       });
     }
 
@@ -176,19 +151,22 @@ export default async function handler(req, res) {
 
     if (!isValidUUID(target_user_id)) {
       return res.status(400).json({
-        error: "Geçersiz kullanıcı UID."
+        success: false,
+        error: "Gecersiz kullanici UID."
       });
     }
 
     if (!["user", "moderator", "admin"].includes(new_role)) {
       return res.status(400).json({
-        error: "Geçersiz kullanıcı rolü."
+        success: false,
+        error: "Gecersiz kullanici rolu."
       });
     }
 
     if (typeof new_is_pro !== "boolean") {
       return res.status(400).json({
-        error: "PRO değeri true veya false olmalı."
+        success: false,
+        error: "PRO degeri true veya false olmali."
       });
     }
 
@@ -201,18 +179,19 @@ export default async function handler(req, res) {
       )
     ) {
       return res.status(400).json({
-        error: "Geçersiz PRO bitiş tarihi."
+        success: false,
+        error: "Gecersiz PRO bitis tarihi."
       });
     }
 
     if (target_user_id === user.id) {
       return res.status(403).json({
-        error: "Kurucu hesabının yetkileri değiştirilemez."
+        success: false,
+        error: "Kurucu hesabinin yetkileri degistirilemez."
       });
     }
 
-    // Sadece daha önce sisteme giriş yapmış
-    // ve kayıt edilmiş kullanıcılar değiştirilebilir.
+    // Kayitli kullanici kontrolu
     const registered = await redis([
       "SISMEMBER",
       "membership:users",
@@ -221,27 +200,29 @@ export default async function handler(req, res) {
 
     if (Number(registered) !== 1) {
       return res.status(404).json({
-        error: "Kullanıcı kayıtlı değil. Önce giriş yapmalı."
+        success: false,
+        error: "Kullanici kayitli degil. Once giris yapmali."
       });
     }
 
+    // Hedef kullanicinin e-postasi
     const profileEmail = await redis([
       "HGET",
       `membership:profile:${target_user_id}`,
       "email"
     ]);
 
-    // Kurucunun ikinci bir hesabına yetki verilmesini
-    // veya kurucu kaydının değiştirilmesini engelle.
     if (
       (profileEmail || "").trim().toLowerCase() ===
       FOUNDER_EMAIL
     ) {
       return res.status(403).json({
-        error: "Kurucu hesabının yetkileri değiştirilemez."
+        success: false,
+        error: "Kurucu hesabinin yetkileri degistirilemez."
       });
     }
 
+    // Uyelik kaydini olustur
     const record = {
       role: new_role,
       is_pro: new_is_pro,
@@ -252,6 +233,7 @@ export default async function handler(req, res) {
       updated_by: user.id
     };
 
+    // Redis'e kaydet
     await redis([
       "SET",
       `membership:${target_user_id}`,
@@ -260,7 +242,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: "Üyelik başarıyla güncellendi.",
+      message: "Uyelik basariyla guncellendi.",
       user_id: target_user_id,
       ...record
     });
@@ -269,9 +251,10 @@ export default async function handler(req, res) {
     console.error("Membership API:", error);
 
     return res.status(error.status || 500).json({
+      success: false,
       error: error.status
         ? error.message
-        : "Üyelik işlemi başarısız. Vercel loglarını kontrol et."
+        : "Uyelik islemi basarisiz. Vercel loglarini kontrol et."
     });
   }
 }

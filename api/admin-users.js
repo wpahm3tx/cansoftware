@@ -13,7 +13,7 @@ async function redis(command) {
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (!url || !token) {
-    throw new Error("Upstash ayarları eksik.");
+    throw new Error("Upstash ortam değişkenleri eksik");
   }
 
   const response = await fetch(url, {
@@ -26,13 +26,13 @@ async function redis(command) {
   });
 
   if (!response.ok) {
-    throw new Error("Upstash bağlantı hatası.");
+    throw new Error(`Upstash HTTP ${response.status}`);
   }
 
   const data = await response.json();
 
   if (data.error) {
-    throw new Error("Redis hatası: " + data.error);
+    throw new Error(`Redis: ${data.error}`);
   }
 
   return data.result;
@@ -43,11 +43,7 @@ async function authenticate(req) {
     req.headers.authorization || ""
   ).replace(/^Bearer\s+/i, "");
 
-  if (!token) {
-    const error = new Error("Giriş yapmalısın.");
-    error.status = 401;
-    throw error;
-  }
+  if (!token) return null;
 
   const response = await fetch(
     `${SUPABASE_URL}/auth/v1/user`,
@@ -59,36 +55,19 @@ async function authenticate(req) {
     }
   );
 
-  if (!response.ok) {
-    const error = new Error("Oturum geçersiz.");
-    error.status = 401;
-    throw error;
-  }
+  if (!response.ok) return null;
 
   return response.json();
 }
 
-function isFounder(user) {
-  return (
-    (user.email || "").trim().toLowerCase() ===
-      FOUNDER_EMAIL &&
-    Boolean(user.email_confirmed_at)
-  );
-}
+function proActive(record) {
+  if (record?.is_pro !== true) return false;
 
-function activePro(record) {
-  if (!record || record.is_pro !== true) {
-    return false;
-  }
+  if (!record.pro_expires_at) return true;
 
-  if (!record.pro_expires_at) {
-    return true;
-  }
+  const time = Date.parse(record.pro_expires_at);
 
-  const expiry = Date.parse(record.pro_expires_at);
-
-  return Number.isFinite(expiry) &&
-    expiry > Date.now();
+  return Number.isFinite(time) && time > Date.now();
 }
 
 export default async function handler(req, res) {
@@ -96,16 +75,27 @@ export default async function handler(req, res) {
 
   if (req.method !== "GET") {
     return res.status(405).json({
-      error: "Yalnızca GET isteği kullanılabilir."
+      error: "Yalnızca GET desteklenir"
     });
   }
 
   try {
     const user = await authenticate(req);
 
-    if (!isFounder(user)) {
+    if (!user) {
+      return res.status(401).json({
+        error: "Geçerli oturum gerekli"
+      });
+    }
+
+    const founder =
+      (user.email || "").trim().toLowerCase() ===
+        FOUNDER_EMAIL &&
+      Boolean(user.email_confirmed_at);
+
+    if (!founder) {
       return res.status(403).json({
-        error: "Bu paneli yalnızca kurucu açabilir."
+        error: "Yalnızca kurucu erişebilir"
       });
     }
 
@@ -117,10 +107,7 @@ export default async function handler(req, res) {
     const users = [];
 
     for (const id of ids || []) {
-      const [
-        email,
-        raw
-      ] = await Promise.all([
+      const [email, raw] = await Promise.all([
         redis([
           "HGET",
           `membership:profile:${id}`,
@@ -142,36 +129,29 @@ export default async function handler(req, res) {
         }
       }
 
-      const founder =
+      const isFounder =
         (email || "").trim().toLowerCase() ===
         FOUNDER_EMAIL;
 
       users.push({
         user_id: id,
         email: email || "",
-        role: founder
+        role: isFounder
           ? "admin"
-          : record?.role || "user",
-        is_pro: founder
-          ? true
-          : activePro(record),
-        pro_expires_at: founder
+          : (record?.role || "user"),
+        is_pro: isFounder || proActive(record),
+        pro_expires_at: isFounder
           ? null
-          : record?.pro_expires_at || null,
-        founder
+          : (record?.pro_expires_at || null),
+        founder: isFounder
       });
     }
 
-    users.sort((a, b) => {
-      if (a.founder !== b.founder) {
-        return a.founder ? -1 : 1;
-      }
-
-      return a.email.localeCompare(
-        b.email,
-        "tr"
-      );
-    });
+    users.sort(
+      (a, b) =>
+        Number(b.founder) - Number(a.founder) ||
+        a.email.localeCompare(b.email, "tr")
+    );
 
     return res.status(200).json({
       success: true,
@@ -180,15 +160,11 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error("Admin Users API:", error);
+    console.error("Admin users error:", error);
 
-    return res.status(error.status || 500).json({
-      error: error.status
-        ? error.message
-        : "Kullanıcı listesi alınamadı. Vercel loglarını kontrol et."
+    return res.status(500).json({
+      error:
+        "Kullanıcılar yüklenemedi. Vercel loglarını kontrol et."
     });
-  }
-}
-
   }
 }

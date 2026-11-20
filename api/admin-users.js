@@ -13,75 +13,99 @@ async function redis(command) {
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (!url || !token) {
-    throw new Error("Upstash ayarları eksik");
+    throw new Error("Upstash ayarları eksik.");
   }
 
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: "Bearer " + token,
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify(command)
   });
 
   if (!response.ok) {
-    throw new Error("Redis bağlantısı başarısız");
+    throw new Error("Upstash bağlantı hatası.");
   }
 
   const data = await response.json();
 
   if (data.error) {
-    throw new Error(data.error);
+    throw new Error("Redis hatası: " + data.error);
   }
 
   return data.result;
 }
 
-async function getUser(req) {
+async function authenticate(req) {
   const token = (
     req.headers.authorization || ""
   ).replace(/^Bearer\s+/i, "");
 
   if (!token) {
-    throw new Error("Oturum bulunamadı");
+    const error = new Error("Giriş yapmalısın.");
+    error.status = 401;
+    throw error;
   }
 
   const response = await fetch(
-    SUPABASE_URL + "/auth/v1/user",
+    `${SUPABASE_URL}/auth/v1/user`,
     {
       headers: {
         apikey: SUPABASE_KEY,
-        Authorization: "Bearer " + token
+        Authorization: `Bearer ${token}`
       }
     }
   );
 
   if (!response.ok) {
-    throw new Error("Geçersiz oturum");
+    const error = new Error("Oturum geçersiz.");
+    error.status = 401;
+    throw error;
   }
 
   return response.json();
 }
 
+function isFounder(user) {
+  return (
+    (user.email || "").trim().toLowerCase() ===
+      FOUNDER_EMAIL &&
+    Boolean(user.email_confirmed_at)
+  );
+}
+
+function activePro(record) {
+  if (!record || record.is_pro !== true) {
+    return false;
+  }
+
+  if (!record.pro_expires_at) {
+    return true;
+  }
+
+  const expiry = Date.parse(record.pro_expires_at);
+
+  return Number.isFinite(expiry) &&
+    expiry > Date.now();
+}
+
 export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+
   if (req.method !== "GET") {
     return res.status(405).json({
-      error: "Geçersiz istek"
+      error: "Yalnızca GET isteği kullanılabilir."
     });
   }
 
   try {
-    const user = await getUser(req);
+    const user = await authenticate(req);
 
-    const founder =
-      user.email?.trim().toLowerCase() ===
-        FOUNDER_EMAIL &&
-      Boolean(user.email_confirmed_at);
-
-    if (!founder) {
+    if (!isFounder(user)) {
       return res.status(403).json({
-        error: "Yalnızca kurucu kullanıcıları görebilir"
+        error: "Bu paneli yalnızca kurucu açabilir."
       });
     }
 
@@ -93,34 +117,78 @@ export default async function handler(req, res) {
     const users = [];
 
     for (const id of ids || []) {
-      const saved = await redis([
-        "GET",
-        "membership:" + id
+      const [
+        email,
+        raw
+      ] = await Promise.all([
+        redis([
+          "HGET",
+          `membership:profile:${id}`,
+          "email"
+        ]),
+        redis([
+          "GET",
+          `membership:${id}`
+        ])
       ]);
 
-      const record = saved
-        ? JSON.parse(saved)
-        : {};
+      let record = null;
+
+      if (raw) {
+        try {
+          record = JSON.parse(raw);
+        } catch {
+          record = null;
+        }
+      }
+
+      const founder =
+        (email || "").trim().toLowerCase() ===
+        FOUNDER_EMAIL;
 
       users.push({
         user_id: id,
-        email: record.email || "",
-        role: record.role || "user",
-        is_pro: Boolean(record.is_pro),
-        pro_expires_at:
-          record.pro_expires_at || null
+        email: email || "",
+        role: founder
+          ? "admin"
+          : record?.role || "user",
+        is_pro: founder
+          ? true
+          : activePro(record),
+        pro_expires_at: founder
+          ? null
+          : record?.pro_expires_at || null,
+        founder
       });
     }
 
+    users.sort((a, b) => {
+      if (a.founder !== b.founder) {
+        return a.founder ? -1 : 1;
+      }
+
+      return a.email.localeCompare(
+        b.email,
+        "tr"
+      );
+    });
+
     return res.status(200).json({
+      success: true,
+      total: users.length,
       users
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("Admin Users API:", error);
 
-    return res.status(500).json({
-      error: "Kullanıcı listesi alınamadı"
+    return res.status(error.status || 500).json({
+      error: error.status
+        ? error.message
+        : "Kullanıcı listesi alınamadı. Vercel loglarını kontrol et."
     });
+  }
+}
+
   }
 }

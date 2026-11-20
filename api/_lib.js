@@ -1,13 +1,13 @@
 
 const SUPABASE_URL =
-  'https://xllmhgabuzaledxqqufe.supabase.co';
+  "https://xllmhgabuzaledxqqufe.supabase.co";
 
 const SUPABASE_KEY =
   process.env.SUPABASE_ANON_KEY ||
-  'sb_publishable_7BnfXFJWwC77ddC8jTXhfA_gvoMYDrL';
+  "sb_publishable_7BnfXFJWwC77ddC8jTXhfA_gvoMYDrL";
 
 const FOUNDER_EMAIL =
-  'ahmetbinarbasi64@gmail.com';
+  "ahmetbinarbasi64@gmail.com";
 
 const LIMITS = {
   chat: [10, 200],
@@ -17,19 +17,20 @@ const LIMITS = {
   edit: [2, 50]
 };
 
-// JSON yaniti
+const AI_MODEL = "gemini-3.8-flash";
+const MAX_ATTEMPTS = 3;
+
 export function send(res, status, data) {
   return res.status(status).json(data);
 }
 
-// Sadece POST istekleri
 export function onlyPost(req, res) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
 
     send(res, 405, {
       success: false,
-      error: 'Yalnizca POST istekleri destekleniyor.'
+      error: "Yalnizca POST istekleri destekleniyor."
     });
 
     return false;
@@ -45,18 +46,18 @@ async function redis(command) {
 
   if (!url || !token) {
     throw Object.assign(
-      new Error('Redis ayarlari eksik.'),
+      new Error("Veritabani ayarlari eksik."),
       { status: 503 }
     );
   }
 
   const response = await fetch(
-    url.replace(/\/$/, ''),
+    url.replace(/\/$/, ""),
     {
-      method: 'POST',
+      method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(command)
     }
@@ -64,7 +65,7 @@ async function redis(command) {
 
   if (!response.ok) {
     throw new Error(
-      `Redis baglanti hatasi: ${response.status}`
+      "Veritabani baglantisi basarisiz."
     );
   }
 
@@ -72,27 +73,25 @@ async function redis(command) {
 
   if (data.error) {
     throw new Error(
-      `Redis hatasi: ${data.error}`
+      "Veritabani islemi basarisiz."
     );
   }
 
   return data.result;
 }
 
-// Google / Supabase oturum kontrolu
+// Kullanici oturumunu dogrula
 export async function authenticate(req) {
   const authorization =
-    req.headers.authorization || '';
+    req.headers.authorization || "";
 
-  const match = authorization.match(
+  const token = authorization.match(
     /^Bearer\s+(.+)$/i
-  );
+  )?.[1]?.trim();
 
-  const accessToken = match?.[1]?.trim();
-
-  if (!accessToken) {
+  if (!token) {
     throw Object.assign(
-      new Error('Oturum acman gerekiyor.'),
+      new Error("Lutfen hesabina giris yap."),
       { status: 401 }
     );
   }
@@ -103,40 +102,33 @@ export async function authenticate(req) {
     response = await fetch(
       `${SUPABASE_URL}/auth/v1/user`,
       {
-        method: 'GET',
+        method: "GET",
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${token}`,
           apikey: SUPABASE_KEY,
-          Accept: 'application/json'
+          Accept: "application/json"
         },
-        cache: 'no-store'
+        cache: "no-store"
       }
     );
-  } catch (error) {
-    console.error(
-      'Supabase baglanti hatasi:',
-      error.message
-    );
-
+  } catch {
     throw Object.assign(
       new Error(
-        'Supabase sunucusuna baglanilamadi.'
+        "Oturum servisine baglanilamadi."
       ),
       { status: 502 }
     );
   }
 
   if (!response.ok) {
-    const details = await response.text();
-
-    console.error('Supabase auth failure:', {
-      status: response.status,
-      details: details.slice(0, 500)
-    });
+    console.error(
+      "Auth verification failed:",
+      response.status
+    );
 
     throw Object.assign(
       new Error(
-        'Oturum dogrulanamadi. Yeniden giris yap.'
+        "Oturum dogrulanamadi. Tekrar giris yap."
       ),
       { status: 401 }
     );
@@ -146,9 +138,7 @@ export async function authenticate(req) {
 
   if (!user?.id || !user?.email) {
     throw Object.assign(
-      new Error(
-        'Supabase kullanici bilgilerini dondurmedi.'
-      ),
+      new Error("Kullanici bilgileri alinamadi."),
       { status: 401 }
     );
   }
@@ -156,13 +146,14 @@ export async function authenticate(req) {
   return user;
 }
 
-// PRO uyelik ve kurucu kontrolu
+// Kurucu ve PRO uyelik kontrolu
 export async function membership(user) {
-  const isFounder =
-    user.email?.toLowerCase() === FOUNDER_EMAIL &&
-    !!user.email_confirmed_at;
+  const founder =
+    user.email?.trim().toLowerCase() ===
+      FOUNDER_EMAIL &&
+    Boolean(user.email_confirmed_at);
 
-  if (isFounder) {
+  if (founder) {
     return {
       founder: true,
       pro: true
@@ -170,7 +161,7 @@ export async function membership(user) {
   }
 
   const raw = await redis([
-    'GET',
+    "GET",
     `membership:${user.id}`
   ]);
 
@@ -182,18 +173,19 @@ export async function membership(user) {
     record = {};
   }
 
-  const expiresAt = record.pro_expires_at;
-
-  const isActive =
-    record.is_pro === true &&
-    (
-      !expiresAt ||
-      new Date(expiresAt).getTime() > Date.now()
-    );
+  const expiry = record.pro_expires_at;
 
   return {
     founder: false,
-    pro: isActive
+    pro:
+      record.is_pro === true &&
+      (
+        !expiry ||
+        (
+          Number.isFinite(Date.parse(expiry)) &&
+          Date.parse(expiry) > Date.now()
+        )
+      )
   };
 }
 
@@ -214,7 +206,7 @@ export async function reserve(user, feature) {
 
   if (!limits) {
     throw Object.assign(
-      new Error('Gecersiz ozellik.'),
+      new Error("Gecersiz islem."),
       { status: 400 }
     );
   }
@@ -229,12 +221,12 @@ export async function reserve(user, feature) {
     `quota:${day}:${feature}:${user.id}`;
 
   const count = Number(
-    await redis(['INCR', key])
+    await redis(["INCR", key])
   );
 
   if (count === 1) {
     await redis([
-      'EXPIRE',
+      "EXPIRE",
       key,
       172800
     ]);
@@ -243,12 +235,9 @@ export async function reserve(user, feature) {
   if (count > max) {
     throw Object.assign(
       new Error(
-        `Gunluk ${feature} limitine ulastin (${max}).`
+        `Gunluk kullanim limitine ulastin (${max}).`
       ),
-      {
-        status: 429,
-        limit: max
-      }
+      { status: 429 }
     );
   }
 
@@ -260,11 +249,18 @@ export async function reserve(user, feature) {
   };
 }
 
-// Gemini API
+// Bekleme fonksiyonu
+function sleep(ms) {
+  return new Promise(resolve =>
+    setTimeout(resolve, ms)
+  );
+}
+
+// Yapay zeka motoru
 export async function gemini(
   parts,
   {
-    model = 'gemini-3.8-flash',
+    model = AI_MODEL,
     search = false
   } = {}
 ) {
@@ -272,7 +268,9 @@ export async function gemini(
 
   if (!apiKey) {
     throw Object.assign(
-      new Error('GEMINI_API_KEY eksik.'),
+      new Error(
+        "Yapay zeka servisi yapilandirilmamis."
+      ),
       { status: 503 }
     );
   }
@@ -280,7 +278,7 @@ export async function gemini(
   const body = {
     contents: [
       {
-        role: 'user',
+        role: "user",
         parts
       }
     ],
@@ -298,69 +296,129 @@ export async function gemini(
     ];
   }
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey
-      },
-      body: JSON.stringify(body)
-    }
-  );
+  const url =
+    "https://generativelanguage.googleapis.com" +
+    `/v1beta/models/${model}:generateContent`;
 
-  const data = await response.json();
+  let lastError = null;
 
-  if (!response.ok) {
-    console.error('Gemini API failure:', {
-      status: response.status,
-      message: data.error?.message
-    });
+  for (
+    let attempt = 1;
+    attempt <= MAX_ATTEMPTS;
+    attempt++
+  ) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(20000)
+      });
 
-    throw Object.assign(
-      new Error(
-        data.error?.message ||
-        'Gemini API hatasi.'
-      ),
-      {
-        status:
-          response.status === 429 ? 429 : 502
+      const data = await response.json();
+
+      if (response.ok) {
+        const candidate = data.candidates?.[0];
+
+        const text = (
+          candidate?.content?.parts || []
+        )
+          .map(part => part.text || "")
+          .join("\n");
+
+        const sources = (
+          candidate?.groundingMetadata
+            ?.groundingChunks || []
+        )
+          .filter(item => item.web)
+          .map(item => ({
+            title: item.web.title,
+            url: item.web.uri
+          }));
+
+        return {
+          text,
+          sources
+        };
       }
-    );
+
+      const message =
+        data.error?.message ||
+        `AI HTTP ${response.status}`;
+
+      const retryable = [
+        429,
+        500,
+        502,
+        503,
+        504
+      ].includes(response.status);
+
+      if (!retryable) {
+        throw Object.assign(
+          new Error(
+            "Yapay zeka istegi islenemedi."
+          ),
+          { status: 502 }
+        );
+      }
+
+      lastError = new Error(message);
+
+      console.warn(
+        `AI deneme ${attempt}/${MAX_ATTEMPTS}:`,
+        response.status
+      );
+
+      if (attempt < MAX_ATTEMPTS) {
+        await sleep(
+          1000 * Math.pow(2, attempt - 1)
+        );
+      }
+
+    } catch (error) {
+      if (error.status) {
+        throw error;
+      }
+
+      lastError = error;
+
+      console.warn(
+        `AI baglanti denemesi ${attempt}/${MAX_ATTEMPTS}:`,
+        error.message
+      );
+
+      if (attempt < MAX_ATTEMPTS) {
+        await sleep(
+          1000 * Math.pow(2, attempt - 1)
+        );
+      }
+    }
   }
 
-  const candidate =
-    data.candidates?.[0];
+  console.error(
+    "AI service unavailable:",
+    lastError?.message
+  );
 
-  const text = (
-    candidate?.content?.parts || []
-  )
-    .map(part => part.text || '')
-    .join('\n');
-
-  const sources = (
-    candidate?.groundingMetadata
-      ?.groundingChunks || []
-  )
-    .filter(item => item.web)
-    .map(item => ({
-      title: item.web.title,
-      url: item.web.uri
-    }));
-
-  return {
-    text,
-    sources
-  };
+  throw Object.assign(
+    new Error(
+      "CAN SOFTWARE AI PRO su anda yogun. " +
+      "Lutfen biraz sonra tekrar dene."
+    ),
+    { status: 503 }
+  );
 }
 
 // Ortak hata yonetimi
 export function fail(res, error) {
-  console.error('API Error:', {
-    message: error.message,
-    status: error.status || 500
-  });
+  console.error(
+    "API error:",
+    error.message
+  );
 
   return send(
     res,
@@ -369,7 +427,7 @@ export function fail(res, error) {
       success: false,
       error:
         error.message ||
-        'Beklenmeyen sunucu hatasi.'
+        "CAN SOFTWARE AI PRO islem sirasinda hata olustu."
     }
   );
 }

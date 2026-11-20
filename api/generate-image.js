@@ -1,98 +1,194 @@
 
-import { Client } from "@gradio/client";
+import {
+  authenticate,
+  membership,
+  send,
+  fail,
+  onlyPost
+} from './_lib.js';
 
-export const config = {
-  maxDuration: 60
-};
+const MODEL = 'gemini-2.5-flash-image';
 
-const SPACE =
-  process.env.IMAGE_GENERATION_SPACE ||
-  "black-forest-labs/FLUX.1-schnell";
+async function redis(command) {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-function findImage(value) {
-  if (!value) return null;
-
-  if (typeof value === "string") {
-    return /^https:\/\//.test(value) ? value : null;
+  if (!url || !token) {
+    throw new Error('Upstash Redis ayarlari eksik.');
   }
 
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const url = findImage(item);
-      if (url) return url;
+  const response = await fetch(
+    url.replace(/\/$/, ''),
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(command)
     }
-    return null;
+  );
+
+  if (!response.ok) {
+    throw new Error('Redis baglanti hatasi.');
   }
 
-  if (typeof value === "object") {
-    for (const key of ["url", "image", "path", "data"]) {
-      const url = findImage(value[key]);
-      if (url) return url;
-    }
+  const data = await response.json();
+
+  if (data.error) {
+    throw new Error(data.error);
   }
 
-  return null;
+  return data.result;
+}
+
+async function checkQuota(user) {
+  const member = await membership(user);
+
+  if (member.founder) {
+    return {
+      pro: true,
+      founder: true,
+      limit: null
+    };
+  }
+
+  const limit = member.pro ? 50 : 2;
+  const date = new Date().toISOString().slice(0, 10);
+  const key = `quota:${date}:generate:${user.id}`;
+
+  const used = Number(await redis(['INCR', key]));
+
+  if (used === 1) {
+    await redis(['EXPIRE', key, 172800]);
+  }
+
+  if (used > limit) {
+    throw Object.assign(
+      new Error(
+        `Gunluk gorsel limitin doldu (${limit}).`
+      ),
+      { status: 429 }
+    );
+  }
+
+  return {
+    pro: member.pro,
+    founder: false,
+    limit,
+    used
+  };
 }
 
 export default async function handler(req, res) {
-  res.setHeader("Cache-Control", "no-store");
-
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "POST isteği gerekli."
-    });
-  }
+  if (!onlyPost(req, res)) return;
 
   try {
-    const { prompt } = req.body || {};
+    const user = await authenticate(req);
 
-    if (
-      typeof prompt !== "string" ||
-      !prompt.trim() ||
-      prompt.length > 2000
-    ) {
-      return res.status(400).json({
-        error: "Görsel açıklaması 1-2000 karakter olmalı."
+    const prompt = String(
+      req.body?.prompt ||
+      req.body?.message ||
+      ''
+    ).trim();
+
+    if (!prompt || prompt.length > 5000) {
+      return send(res, 400, {
+        success: false,
+        error: 'Gorsel aciklamasi 1-5000 karakter olmali.'
       });
     }
 
-    const client = await Client.connect(
-      SPACE,
-      process.env.HF_TOKEN
-        ? { token: process.env.HF_TOKEN }
-        : {}
+    const key = process.env.GEMINI_API_KEY;
+
+    if (!key) {
+      return send(res, 503, {
+        success: false,
+        error: 'GEMINI_API_KEY bulunamadi.'
+      });
+    }
+
+    const quota = await checkQuota(user);
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': key
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            responseModalities: ['TEXT', 'IMAGE']
+          }
+        })
+      }
     );
 
-    const result = await client.predict("/infer", {
-      prompt: prompt.trim(),
-      seed: 0,
-      randomize_seed: true,
-      width: 1024,
-      height: 1024,
-      num_inference_steps: 4
-    });
+    const data = await response.json();
 
-    const url = findImage(result?.data);
+    if (!response.ok) {
+      const message =
+        data.error?.message ||
+        'Gemini gorsel olusturma hatasi.';
 
-    if (!url) {
-      return res.status(502).json({
-        error: "Servis geçerli bir görsel döndürmedi."
+      return send(
+        res,
+        response.status === 429 ? 429 : 502,
+        {
+          success: false,
+          error: message
+        }
+      );
+    }
+
+    const parts =
+      data.candidates?.[0]?.content?.parts || [];
+
+    const imagePart = parts.find(
+      part => part.inlineData?.data
+    );
+
+    if (!imagePart) {
+      const explanation = parts
+        .map(part => part.text || '')
+        .join('\n');
+
+      return send(res, 502, {
+        success: false,
+        error:
+          explanation ||
+          'Gemini bu istekte gorsel dondurmedi.'
       });
     }
 
-    return res.status(200).json({
+    const mime =
+      imagePart.inlineData.mimeType ||
+      'image/png';
+
+    const image =
+      `data:${mime};base64,${imagePart.inlineData.data}`;
+
+    return send(res, 200, {
       success: true,
-      url,
-      image: url
+      image,
+      imageUrl: image,
+      text: 'Gorsel basariyla olusturuldu.',
+      quota
     });
 
   } catch (error) {
-    console.error("CAN IMAGE GENERATE:", error);
-
-    return res.status(503).json({
-      error: "Fotoğraf oluşturma başarısız.",
-      details: String(error?.message || error)
-        .slice(0, 400)
-    });
+    return fail(res, error);
   }
 }

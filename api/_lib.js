@@ -264,7 +264,7 @@ export async function reserve(user, feature) {
 export async function gemini(
   parts,
   {
-    model = 'gemini-2.5-flash',
+    model = 'gemini-3.8-flash',
     search = false
   } = {}
 ) {

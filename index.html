@@ -1,0 +1,2139 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b070b">
+<title>CAN SOFTWARE AI PRO</title>
+
+<style>
+:root {
+  --bg:#09080c;
+  --panel:#171016;
+  --panel2:#23131d;
+  --line:#512436;
+  --red:#ff284b;
+  --red2:#b00032;
+  --text:#fff0f3;
+  --muted:#bca5ae;
+  --green:#62dfa1;
+}
+
+* { box-sizing:border-box; }
+
+body {
+  margin:0;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 85% 0%,#390d20,var(--bg) 55%);
+  font-family:Arial,system-ui,sans-serif;
+}
+
+button,input,textarea,select { font:inherit; }
+button { cursor:pointer; }
+button:disabled { opacity:.5;cursor:wait; }
+a { color:#ff9aad; }
+.hidden { display:none!important; }
+
+.auth-screen {
+  min-height:100vh;
+  display:grid;
+  place-items:center;
+  padding:22px;
+}
+
+.auth-card {
+  width:100%;
+  max-width:465px;
+  background:linear-gradient(145deg,#21121c,#110b12);
+  border:1px solid #773049;
+  border-radius:24px;
+  padding:34px;
+  box-shadow:0 25px 90px #0009,0 0 45px #a4002822;
+}
+
+.auth-brand {
+  text-align:center;
+  margin-bottom:25px;
+}
+
+.auth-logo {
+  width:115px;
+  height:115px;
+  object-fit:contain;
+  filter:drop-shadow(0 0 18px #d90044);
+}
+
+.auth-brand h1 {
+  margin:13px 0 6px;
+  font-size:25px;
+}
+
+.auth-brand h1 span,
+.side-brand h2 span {
+  color:var(--red);
+}
+
+.auth-brand p {
+  color:var(--muted);
+  font-size:13px;
+}
+
+.auth-tabs {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  background:#0c090e;
+  padding:5px;
+  border-radius:13px;
+  margin-bottom:22px;
+}
+
+.auth-tab {
+  background:transparent;
+  color:var(--muted);
+  border:0;
+  border-radius:10px;
+  padding:12px;
+}
+
+.auth-tab.active {
+  background:#711b37;
+  color:white;
+  font-weight:bold;
+}
+
+label {
+  display:block;
+  margin:15px 0 8px;
+  color:#e7c0cb;
+  font-size:13px;
+}
+
+input:not([type="checkbox"]),
+textarea,
+select {
+  width:100%;
+  background:#0d090f;
+  border:1px solid #683248;
+  border-radius:12px;
+  padding:13px 14px;
+  color:white;
+  outline:none;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color:var(--red);
+}
+
+textarea {
+  resize:vertical;
+  min-height:105px;
+}
+
+.btn {
+  border:0;
+  border-radius:12px;
+  padding:13px 18px;
+  color:white;
+  font-weight:700;
+  background:linear-gradient(135deg,var(--red),var(--red2));
+}
+
+.btn:hover { filter:brightness(1.12); }
+
+.btn.full {
+  width:100%;
+  margin-top:17px;
+}
+
+.btn.alt { background:#38212d; }
+
+.google-btn {
+  width:100%;
+  padding:13px;
+  border-radius:12px;
+  background:#fff;
+  color:#222;
+  border:0;
+  font-weight:bold;
+}
+
+.separator {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  color:var(--muted);
+  margin:19px 0;
+  font-size:12px;
+}
+
+.separator::before,
+.separator::after {
+  content:"";
+  height:1px;
+  flex:1;
+  background:#583044;
+}
+
+.link-btn {
+  border:0;
+  background:transparent;
+  color:#ff9caf;
+  text-decoration:underline;
+  padding:5px;
+}
+
+.status {
+  color:#ff9aab;
+  margin-top:13px;
+  min-height:20px;
+  font-size:13px;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+
+.status.ok { color:var(--green); }
+
+.auth-contact {
+  text-align:center;
+  font-size:12px;
+  color:var(--muted);
+  margin-top:23px;
+  line-height:1.9;
+}
+
+.app {
+  display:flex;
+  min-height:100vh;
+}
+
+.sidebar {
+  width:265px;
+  flex-shrink:0;
+  padding:19px 13px;
+  background:#0d090e;
+  border-right:1px solid var(--line);
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.side-brand {
+  text-align:center;
+  padding:10px 5px 22px;
+}
+
+.side-brand img {
+  width:110px;
+  height:110px;
+  object-fit:contain;
+  filter:drop-shadow(0 0 14px #e00042);
+}
+
+.side-brand h2 {
+  font-size:20px;
+  margin:10px 0 4px;
+}
+
+.side-brand small { color:var(--muted); }
+
+.nav {
+  text-align:left;
+  background:transparent;
+  border:1px solid transparent;
+  color:#d2b9c3;
+  border-radius:12px;
+  padding:13px;
+}
+
+.nav:hover,
+.nav.active {
+  background:linear-gradient(90deg,#551228,#25121b);
+  border-color:#84334d;
+  color:white;
+}
+
+.side-bottom {
+  margin-top:auto;
+  padding:15px;
+  background:#180e16;
+  border:1px solid var(--line);
+  border-radius:12px;
+  font-size:12px;
+  line-height:1.8;
+  overflow-wrap:anywhere;
+}
+
+main {
+  min-width:0;
+  flex:1;
+  padding:25px;
+}
+
+.header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  padding:17px 20px;
+  border:1px solid var(--line);
+  background:#191019;
+  border-radius:17px;
+  margin-bottom:22px;
+}
+
+.header h1 {
+  margin:0;
+  font-size:23px;
+}
+
+.header p {
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.userbar {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.user-email {
+  color:#ffc1cd;
+  font-size:12px;
+  overflow-wrap:anywhere;
+}
+
+.page { display:none; }
+.page.active { display:block; }
+
+.card {
+  background:linear-gradient(145deg,var(--panel),#100c12);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:24px;
+  box-shadow:0 12px 30px #0005;
+}
+
+.card h2 { margin-top:0; }
+
+.sub {
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.7;
+}
+
+.actions {
+  display:flex;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:15px;
+}
+
+.result {
+  margin-top:18px;
+  padding:17px;
+  background:#0d090f;
+  border:1px solid var(--line);
+  border-radius:13px;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  line-height:1.6;
+}
+
+.result:empty { display:none; }
+
+.result img {
+  display:block;
+  max-width:100%;
+  max-height:560px;
+  margin:0 auto 15px;
+  border-radius:12px;
+}
+
+.chat {
+  height:390px;
+  overflow:auto;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:8px 0 18px;
+}
+
+.msg {
+  max-width:85%;
+  border-radius:14px;
+  padding:14px;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  line-height:1.6;
+}
+
+.msg.ai {
+  align-self:flex-start;
+  background:#281923;
+  border:1px solid #532b3d;
+}
+
+.msg.user {
+  align-self:flex-end;
+  background:#801d3c;
+}
+
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+  gap:15px;
+}
+
+.supporter {
+  padding:23px;
+  text-align:center;
+  background:#21121b;
+  border:1px solid #743047;
+  border-radius:16px;
+}
+
+.supporter strong {
+  display:block;
+  font-size:20px;
+  margin:12px 0;
+}
+
+.supporter small { color:var(--muted); }
+
+.supporter.featured {
+  grid-column:1/-1;
+  background:linear-gradient(135deg,#590c28,#1b0d16);
+  border:2px solid var(--red);
+  box-shadow:0 0 25px #d9004044;
+}
+
+.supporter.featured strong { font-size:27px; }
+
+.contact {
+  display:block;
+  padding:20px;
+  background:#21131c;
+  border:1px solid #6d3047;
+  border-radius:14px;
+  text-decoration:none;
+  color:white;
+}
+
+.contact:hover { border-color:var(--red); }
+.contact small { color:#ff9caf; }
+
+.price {
+  color:var(--red);
+  font-size:48px;
+  font-weight:900;
+  margin:15px 0;
+}
+
+.preview {
+  max-width:100%;
+  max-height:250px;
+  margin-top:14px;
+  border-radius:12px;
+}
+
+.admin-user {
+  padding:18px;
+  border:1px solid #743047;
+  background:#170d15;
+  border-radius:15px;
+  margin-top:14px;
+}
+
+.admin-user strong {
+  display:block;
+  overflow-wrap:anywhere;
+}
+
+.admin-user small {
+  display:block;
+  margin:9px 0;
+  color:var(--muted);
+  overflow-wrap:anywhere;
+}
+
+.check-row {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:15px 0;
+}
+
+.check-row input {
+  width:18px;
+  height:18px;
+  accent-color:var(--red);
+}
+
+.role-badge {
+  display:inline-block;
+  background:#532039;
+  border:1px solid #923650;
+  border-radius:9px;
+  padding:7px 11px;
+  font-size:12px;
+}
+
+.footer {
+  text-align:center;
+  color:#9d7987;
+  font-size:12px;
+  padding:28px 0 10px;
+}
+
+@media(max-width:850px) {
+  .app { display:block; }
+
+  .sidebar {
+    width:100%;
+    flex-direction:row;
+    flex-wrap:wrap;
+    border-right:0;
+    border-bottom:1px solid var(--line);
+  }
+
+  .side-brand { width:100%; }
+  .side-brand img { width:75px;height:75px; }
+  .nav { padding:10px;font-size:12px; }
+  .side-bottom { width:100%;margin-top:0; }
+  main { padding:13px; }
+  .header { padding:14px;flex-wrap:wrap; }
+  .header h1 { font-size:19px; }
+  .card { padding:17px; }
+  .auth-card { padding:23px; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- GİRİŞ EKRANI -->
+<div id="authScreen" class="auth-screen">
+  <div class="auth-card">
+
+    <div class="auth-brand">
+      <img src="/logo.png" class="auth-logo"
+           alt="CAN SOFTWARE AI Logo">
+      <h1>CAN SOFTWARE <span>AI PRO</span></h1>
+      <p>Güçlü yapay zekâ. Profesyonel deneyim.</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active"
+              id="loginTab" type="button">
+        Giriş Yap
+      </button>
+      <button class="auth-tab"
+              id="registerTab" type="button">
+        Kayıt Ol
+      </button>
+    </div>
+
+    <form id="authForm">
+      <label>E-posta adresi</label>
+      <input id="authEmail" type="email"
+             autocomplete="email" required
+             placeholder="ornek@gmail.com">
+
+      <label>Şifre</label>
+      <input id="authPassword" type="password"
+             minlength="6" required
+             autocomplete="current-password"
+             placeholder="Şifreni gir">
+
+      <button class="btn full"
+              id="authSubmit" type="submit">
+        Giriş Yap
+      </button>
+    </form>
+
+    <div class="separator">VEYA</div>
+
+    <button class="google-btn" id="googleLogin"
+            type="button">
+      🌐 Google ile devam et
+    </button>
+
+    <div style="text-align:center;margin-top:18px">
+      <button class="link-btn"
+              id="forgotPassword" type="button">
+        Şifremi unuttum
+      </button>
+    </div>
+
+    <div id="authStatus" class="status"></div>
+
+    <div class="auth-contact">
+      TikTok:
+      <a href="https://www.tiktok.com/@wp.ahmetx"
+         target="_blank" rel="noopener noreferrer">
+        @wp.ahmetx
+      </a>
+      <br>
+      Instagram:
+      <a href="https://www.instagram.com/can.software1/"
+         target="_blank" rel="noopener noreferrer">
+        @can.software1
+      </a>
+      <br>
+      © CAN SOFTWARE — AHMET UTKU CAN
+    </div>
+
+  </div>
+</div>
+
+<!-- ANA UYGULAMA -->
+<div id="appScreen" class="app hidden">
+
+<aside class="sidebar">
+  <div class="side-brand">
+    <img src="/logo.png" alt="CAN SOFTWARE AI">
+    <h2>CAN SOFTWARE <span>AI</span></h2>
+    <small>PROFESSIONAL AI PLATFORM</small>
+  </div>
+
+  <button class="nav active" data-page="chat">
+    💬 AI Sohbet
+  </button>
+
+  <button class="nav" data-page="generate">
+    🎨 Görsel Oluştur
+  </button>
+
+  <button class="nav" data-page="edit">
+    🖼️ Fotoğraf Düzenle
+  </button>
+
+  <button class="nav" data-page="analyze">
+    📄 Dosya Analizi
+  </button>
+
+  <button class="nav" data-page="search">
+    🌐 Web Araştırması
+  </button>
+
+  <button class="nav" data-page="history">
+    🕒 Sohbet Geçmişi
+  </button>
+
+  <button class="nav" data-page="pro">
+    💎 PRO Üyelik
+  </button>
+
+  <button class="nav hidden"
+          id="adminNav" data-page="admin">
+    👑 Yönetici Paneli
+  </button>
+
+  <button class="nav" data-page="supporters">
+    ❤️ Destekçilerimiz
+  </button>
+
+  <button class="nav" data-page="contact">
+    📞 İletişim
+  </button>
+
+  <div class="side-bottom">
+    <strong>CAN SOFTWARE AI</strong><br>
+    Yapımcı: AHMET UTKU CAN<br>
+    <span id="sideEmail"></span><br>
+    <span id="sideMembership">Üyelik yükleniyor...</span>
+  </div>
+</aside>
+
+<main>
+
+<header class="header">
+  <div>
+    <h1 id="pageTitle">💬 AI Sohbet</h1>
+    <p>CAN SOFTWARE AI PRO</p>
+  </div>
+
+  <div class="userbar">
+    <span class="role-badge"
+          id="headerRole">Kullanıcı</span>
+    <span class="user-email"
+          id="userEmail"></span>
+    <button class="btn alt" id="logoutBtn">
+      Çıkış Yap
+    </button>
+  </div>
+</header>
+
+<!-- SOHBET -->
+<section class="page active" id="page-chat">
+  <div class="card">
+    <h2>💬 Yapay Zekâ Asistanı</h2>
+    <p class="sub">
+      Türkçe sohbet, yazılım geliştirme ve kod yazma.
+    </p>
+
+    <div class="chat" id="chatMessages"></div>
+
+    <form id="chatForm">
+      <label>Mesajın</label>
+      <textarea id="chatInput" required
+        placeholder="CAN SOFTWARE AI'ya bir şey sor..."></textarea>
+
+      <div class="actions">
+        <button class="btn alt" type="button"
+                id="newChat">
+          Yeni Sohbet
+        </button>
+        <button class="btn" type="submit">
+          Gönder ➤
+        </button>
+      </div>
+    </form>
+
+    <div class="status" id="chatStatus"></div>
+  </div>
+</section>
+
+<!-- GÖRSEL OLUŞTUR -->
+<section class="page" id="page-generate">
+  <div class="card">
+    <h2>🎨 Görsel Oluştur</h2>
+    <p class="sub">
+      Gerçekçi fotoğraflar, logolar ve tasarımlar üret.
+    </p>
+
+    <form id="generateForm">
+      <label>Görsel açıklaması</label>
+      <textarea id="generatePrompt" required
+        placeholder="Gerçekçi kırmızı-siyah kurt logosu..."></textarea>
+
+      <div class="actions">
+        <button class="btn" type="submit">
+          Görsel Oluştur
+        </button>
+      </div>
+    </form>
+
+    <div class="status" id="generateStatus"></div>
+    <div class="result" id="generateResult"></div>
+  </div>
+</section>
+
+<!-- FOTOĞRAF DÜZENLE -->
+<section class="page" id="page-edit">
+  <div class="card">
+    <h2>🖼️ Fotoğraf Düzenle</h2>
+    <p class="sub">
+      PNG, JPG veya WEBP fotoğraf yükle.
+      Büyük dosyalar sunucu sınırını aşabilir.
+    </p>
+
+    <form id="editForm">
+      <label>Fotoğraf seç</label>
+      <input type="file" id="editFile"
+             accept="image/jpeg,image/png,image/webp"
+             required>
+
+      <img id="editPreview" class="preview"
+           alt="Önizleme" hidden>
+
+      <label>Düzenleme talimatı</label>
+      <textarea id="editPrompt" required
+        placeholder="Arka planı değiştir, ana kişiyi koru..."></textarea>
+
+      <div class="actions">
+        <button class="btn" type="submit">
+          Fotoğrafı Düzenle
+        </button>
+      </div>
+    </form>
+
+    <div class="status" id="editStatus"></div>
+    <div class="result" id="editResult"></div>
+  </div>
+</section>
+
+<!-- DOSYA ANALİZİ -->
+<section class="page" id="page-analyze">
+  <div class="card">
+    <h2>📄 Dosya Analizi</h2>
+    <p class="sub">
+      PDF, DOCX, TXT, MD, JS, HTML, CSS, JSON,
+      PY, CSV, TS, JSX ve TSX.
+      Maksimum dosya boyutu: 2,7 MB.
+    </p>
+
+    <form id="analyzeForm">
+      <label>Dosya seç</label>
+      <input type="file" id="analyzeFile"
+             accept=".pdf,.docx,.txt,.md,.js,.html,.css,.json,.py,.csv,.ts,.jsx,.tsx"
+             required>
+
+      <label>Analiz talimatı</label>
+      <textarea id="analyzePrompt"
+        placeholder="Dosyayı özetle, önemli noktaları açıkla..."></textarea>
+
+      <div class="actions">
+        <button class="btn" type="submit">
+          Analiz Et
+        </button>
+      </div>
+    </form>
+
+    <div class="status" id="analyzeStatus"></div>
+    <div class="result" id="analyzeResult"></div>
+  </div>
+</section>
+
+<!-- WEB ARAŞTIRMASI -->
+<section class="page" id="page-search">
+  <div class="card">
+    <h2>🌐 Web Araştırması</h2>
+    <p class="sub">
+      İnternetten arama sonuçları ve kaynak bağlantıları bul.
+    </p>
+
+    <form id="searchForm">
+      <label>Araştırılacak konu</label>
+      <textarea id="searchPrompt" required
+        placeholder="Araştırmak istediğin konuyu yaz..."></textarea>
+
+      <div class="actions">
+        <button class="btn" type="submit">
+          Araştır
+        </button>
+      </div>
+    </form>
+
+    <div class="status" id="searchStatus"></div>
+    <div class="result" id="searchResult"></div>
+  </div>
+</section>
+
+<!-- GEÇMİŞ -->
+<section class="page" id="page-history">
+  <div class="card">
+    <h2>🕒 Sohbet Geçmişi</h2>
+    <p class="sub">
+      Bu hesabın bu tarayıcıdaki sohbet geçmişi.
+    </p>
+
+    <div class="actions">
+      <button class="btn alt" id="clearHistory">
+        Geçmişi Temizle
+      </button>
+    </div>
+
+    <div class="result" id="historyResult"></div>
+  </div>
+</section>
+
+<!-- PRO ÜYELİK -->
+<section class="page" id="page-pro">
+  <div class="card">
+    <h2>💎 CAN SOFTWARE AI PRO</h2>
+
+    <div class="role-badge"
+         id="myProStatus">
+      Üyelik kontrol ediliyor...
+    </div>
+
+    <div class="price">150 TL</div>
+    <p>PRO üyelik fiyatı</p>
+
+    <p class="sub">
+      Ödeme bildirimi ve otomatik üyelik
+      aktivasyonu henüz etkin değildir.
+      Bu sayfadan ödeme alınmaz.
+    </p>
+
+    <button class="btn" id="proContact">
+      İletişime Geç
+    </button>
+  </div>
+</section>
+
+<!-- ADMİN PANELİ -->
+<section class="page" id="page-admin">
+  <div class="card">
+    <h2>👑 CAN SOFTWARE YÖNETİCİ PANELİ</h2>
+
+    <p class="sub">
+      Bu panel sadece admin hesaplarına açıktır.
+      Kullanıcılara PRO verebilir, PRO üyeliklerini
+      kaldırabilir ve yönetici atayabilirsin.
+    </p>
+
+    <div class="actions">
+      <button class="btn" id="refreshAdminUsers">
+        🔄 Kullanıcıları Yenile
+      </button>
+    </div>
+
+    <div class="status" id="adminStatus"></div>
+
+    <div id="adminUsers"></div>
+  </div>
+</section>
+
+<!-- DESTEKÇİLER -->
+<section class="page" id="page-supporters">
+  <div class="card">
+    <h2>❤️ DESTEKÇİLERİMİZ</h2>
+    <p class="sub">
+      CAN SOFTWARE AI'ya destek veren herkese teşekkürler.
+    </p>
+
+    <div class="grid">
+
+      <div class="supporter featured">
+        👑 ÖZEL DESTEKÇİ
+        <strong>BRDX FAMILY</strong>
+        <small>CAN SOFTWARE AI Özel Destekçisi</small>
+      </div>
+
+      <div class="supporter">
+        ❤️
+        <strong>KARTANESİ</strong>
+        <small>Değerli Destekçimiz</small>
+      </div>
+
+      <div class="supporter">
+        ❤️
+        <strong>KAMİ ÖMER</strong>
+        <small>Değerli Destekçimiz</small>
+      </div>
+
+      <div class="supporter">
+        ❤️
+        <strong>KAMİ</strong>
+        <small>Değerli Destekçimiz</small>
+      </div>
+
+      <div class="supporter">
+        ❤️
+        <strong>KAMİ AİLESİ</strong>
+        <small>Değerli Destekçimiz</small>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- İLETİŞİM -->
+<section class="page" id="page-contact">
+  <div class="card">
+    <h2>📞 İletişim Paneli</h2>
+
+    <div class="grid">
+
+      <a class="contact"
+         href="https://www.tiktok.com/@wp.ahmetx"
+         target="_blank" rel="noopener noreferrer">
+        🎵 <strong>TikTok</strong><br>
+        <small>@wp.ahmetx</small>
+      </a>
+
+      <a class="contact"
+         href="https://www.instagram.com/can.software1/"
+         target="_blank" rel="noopener noreferrer">
+        📸 <strong>Instagram</strong><br>
+        <small>@can.software1</small>
+      </a>
+
+      <a class="contact"
+         href="mailto:ahmet.utku.can1@gmail.com">
+        ✉️ <strong>E-posta</strong><br>
+        <small>ahmet.utku.can1@gmail.com</small>
+      </a>
+
+    </div>
+
+    <p class="sub" style="margin-top:24px">
+      Yapımcı: <strong>AHMET UTKU CAN</strong><br>
+      Marka: <strong>CAN SOFTWARE</strong>
+    </p>
+  </div>
+</section>
+
+<footer class="footer">
+  © CAN SOFTWARE AI PRO — AHMET UTKU CAN
+</footer>
+
+</main>
+</div>
+
+<script type="module">
+
+import {
+  createClient
+} from "https://esm.sh/@supabase/supabase-js@2";
+
+/*
+  SUPABASE AYARLARI
+
+  URL hazır.
+  Publishable key'i kendi Supabase hesabından al.
+
+  Buraya secret veya service_role key koyma.
+*/
+
+const SUPABASE_URL =
+  "https://xllmhgabuzaledxqqufe.supabase.co";
+
+const SUPABASE_ANON_KEY =
+  "BURAYA_SUPABASE_PUBLISHABLE_KEY";
+
+const $ = id => document.getElementById(id);
+
+const supabase = createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  {
+    auth: {
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true
+    }
+  }
+);
+
+let currentUser = null;
+let authMode = "login";
+let messages = [];
+let chatStorageKey = null;
+
+let myMembership = {
+  role:"user",
+  isPro:false
+};
+
+let membershipRequestId = 0;
+
+/* GENEL YARDIMCILAR */
+
+function setStatus(id, message, ok = false) {
+  const element = $(id);
+  element.textContent = message;
+  element.classList.toggle("ok", ok);
+}
+
+function setBusy(form, busy) {
+  form.querySelectorAll('button[type="submit"]')
+    .forEach(button => button.disabled = busy);
+}
+
+function showError(id, error) {
+  setStatus(
+    id,
+    "⚠️ " + (error?.message || String(error))
+  );
+}
+
+function answerText(data) {
+  if (typeof data === "string") return data;
+  if (!data) return "Boş yanıt.";
+
+  return (
+    data.reply ||
+    data.response ||
+    data.answer ||
+    data.message ||
+    data.text ||
+    data.content ||
+    data.result ||
+    data.choices?.[0]?.message?.content ||
+    JSON.stringify(data,null,2)
+  );
+}
+
+/* GİRİŞ EKRANI */
+
+function setAuthMode(mode) {
+  authMode = mode;
+
+  $("loginTab").classList.toggle(
+    "active",mode === "login"
+  );
+
+  $("registerTab").classList.toggle(
+    "active",mode === "register"
+  );
+
+  $("authSubmit").textContent =
+    mode === "login" ? "Giriş Yap" : "Hesap Oluştur";
+
+  $("authPassword").autocomplete =
+    mode === "login"
+      ? "current-password"
+      : "new-password";
+
+  setStatus("authStatus","");
+}
+
+$("loginTab").onclick = () => setAuthMode("login");
+$("registerTab").onclick = () => setAuthMode("register");
+
+$("authForm").addEventListener("submit",async e => {
+  e.preventDefault();
+
+  const form = e.currentTarget;
+  const email = $("authEmail").value.trim();
+  const password = $("authPassword").value;
+
+  setBusy(form,true);
+  setStatus("authStatus","İşlem yapılıyor...");
+
+  try {
+    if (authMode === "register") {
+      const {data,error} = await supabase.auth.signUp({
+        email,
+        password,
+        options:{
+          emailRedirectTo:window.location.origin + "/"
+        }
+      });
+
+      if (error) throw error;
+
+      setStatus(
+        "authStatus",
+        data.session
+          ? "Kayıt başarılı."
+          : "Kayıt isteği alındı. E-posta doğrulaması gerekiyorsa gelen kutunu kontrol et.",
+        true
+      );
+    } else {
+      const {error} =
+        await supabase.auth.signInWithPassword({
+          email,password
+        });
+
+      if (error) throw error;
+
+      setStatus("authStatus","Giriş başarılı.",true);
+    }
+  } catch (error) {
+    showError("authStatus",error);
+  } finally {
+    setBusy(form,false);
+  }
+});
+
+/* GOOGLE GİRİŞ */
+
+$("googleLogin").onclick = async () => {
+  $("googleLogin").disabled = true;
+
+  setStatus(
+    "authStatus",
+    "Google giriş sayfası açılıyor..."
+  );
+
+  try {
+    const {error} =
+      await supabase.auth.signInWithOAuth({
+        provider:"google",
+        options:{
+          redirectTo:window.location.origin + "/"
+        }
+      });
+
+    if (error) throw error;
+  } catch (error) {
+    showError("authStatus",error);
+    $("googleLogin").disabled = false;
+  }
+};
+
+/* ŞİFRE SIFIRLAMA */
+
+$("forgotPassword").onclick = async () => {
+  const email = $("authEmail").value.trim();
+
+  if (!email) {
+    setStatus(
+      "authStatus",
+      "Önce e-posta adresini gir."
+    );
+    return;
+  }
+
+  const {error} =
+    await supabase.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo:window.location.origin + "/"
+      }
+    );
+
+  setStatus(
+    "authStatus",
+    error
+      ? error.message
+      : "Hesap varsa şifre sıfırlama bağlantısı gönderildi.",
+    !error
+  );
+};
+
+/* OTURUM */
+
+function updateSession(session) {
+  const user = session?.user || null;
+  const previousId = currentUser?.id || null;
+
+  currentUser = user;
+
+  if (!user) {
+    membershipRequestId++;
+    myMembership = {role:"user",isPro:false};
+    messages = [];
+    chatStorageKey = null;
+
+    $("appScreen").classList.add("hidden");
+    $("authScreen").classList.remove("hidden");
+    $("adminNav").classList.add("hidden");
+    $("adminUsers").replaceChildren();
+
+    return;
+  }
+
+  $("authScreen").classList.add("hidden");
+  $("appScreen").classList.remove("hidden");
+
+  $("userEmail").textContent = user.email || "";
+  $("sideEmail").textContent = user.email || "";
+
+  if (previousId !== user.id) {
+    chatStorageKey = "can-ai-chat-" + user.id;
+    loadChat();
+
+    myMembership = {role:"user",isPro:false};
+    $("adminNav").classList.add("hidden");
+
+    refreshMyMembership();
+  }
+}
+
+supabase.auth.onAuthStateChange((event,session) => {
+  updateSession(session);
+
+  if (event === "PASSWORD_RECOVERY") {
+    setTimeout(async () => {
+      const password = prompt(
+        "Yeni şifreni gir (en az 6 karakter):"
+      );
+
+      if (!password) return;
+
+      if (password.length < 6) {
+        alert("Şifre en az 6 karakter olmalı.");
+        return;
+      }
+
+      const {error} =
+        await supabase.auth.updateUser({
+          password
+        });
+
+      alert(
+        error
+          ? error.message
+          : "Şifren güncellendi."
+      );
+    },0);
+  }
+});
+
+supabase.auth.getSession().then(({data,error}) => {
+  if (error) {
+    showError("authStatus",error);
+  } else {
+    updateSession(data.session);
+  }
+});
+
+$("logoutBtn").onclick = async () => {
+  const {error} = await supabase.auth.signOut();
+
+  if (error) {
+    alert("Çıkış hatası: " + error.message);
+  }
+};
+
+/* ÜYELİK KONTROLÜ */
+
+async function refreshMyMembership() {
+  if (!currentUser) return;
+
+  const userId = currentUser.id;
+  const requestId = ++membershipRequestId;
+
+  const {data,error} = await supabase
+    .from("user_roles")
+    .select("role,is_pro,pro_expires_at")
+    .eq("user_id",userId)
+    .maybeSingle();
+
+  if (
+    requestId !== membershipRequestId ||
+    currentUser?.id !== userId
+  ) return;
+
+  if (error) {
+    console.error("Üyelik hatası:",error);
+    myMembership = {role:"user",isPro:false};
+  } else {
+    const notExpired =
+      !data?.pro_expires_at ||
+      new Date(data.pro_expires_at) > new Date();
+
+    myMembership = {
+      role:data?.role || "user",
+      isPro:Boolean(data?.is_pro && notExpired)
+    };
+  }
+
+  const roleNames = {
+    user:"👤 Kullanıcı",
+    moderator:"🛡️ Yönetici",
+    admin:"👑 Admin"
+  };
+
+  $("headerRole").textContent =
+    roleNames[myMembership.role] || "Kullanıcı";
+
+  $("sideMembership").textContent =
+    myMembership.isPro
+      ? "💎 PRO ÜYE"
+      : "Ücretsiz Üyelik";
+
+  $("myProStatus").textContent =
+    myMembership.isPro
+      ? "✅ PRO üyeliğin aktif"
+      : "PRO üyeliğin aktif değil";
+
+  const isAdmin = myMembership.role === "admin";
+
+  $("adminNav").classList.toggle(
+    "hidden",!isAdmin
+  );
+
+  if (
+    !isAdmin &&
+    $("page-admin").classList.contains("active")
+  ) {
+    openPage("chat");
+  }
+}
+
+/* SAYFA GEÇİŞLERİ */
+
+const pageTitles = {
+  chat:"💬 AI Sohbet",
+  generate:"🎨 Görsel Oluştur",
+  edit:"🖼️ Fotoğraf Düzenle",
+  analyze:"📄 Dosya Analizi",
+  search:"🌐 Web Araştırması",
+  history:"🕒 Sohbet Geçmişi",
+  pro:"💎 PRO Üyelik",
+  admin:"👑 Yönetici Paneli",
+  supporters:"❤️ Destekçilerimiz",
+  contact:"📞 İletişim"
+};
+
+function openPage(page) {
+  if (
+    page === "admin" &&
+    myMembership.role !== "admin"
+  ) return;
+
+  document.querySelectorAll(".nav")
+    .forEach(button => {
+      button.classList.toggle(
+        "active",
+        button.dataset.page === page
+      );
+    });
+
+  document.querySelectorAll(".page")
+    .forEach(section => {
+      section.classList.toggle(
+        "active",
+        section.id === "page-" + page
+      );
+    });
+
+  $("pageTitle").textContent =
+    pageTitles[page] || "CAN SOFTWARE AI";
+
+  if (page === "history") renderHistory();
+  if (page === "admin") loadAdminUsers();
+  if (page === "pro") refreshMyMembership();
+}
+
+document.querySelectorAll(".nav")
+  .forEach(button => {
+    button.onclick = () => {
+      openPage(button.dataset.page);
+    };
+  });
+
+$("proContact").onclick = () => openPage("contact");
+
+/* SOHBET HAFIZASI */
+
+function loadChat() {
+  messages = [];
+
+  try {
+    const value = JSON.parse(
+      localStorage.getItem(chatStorageKey) || "[]"
+    );
+
+    if (Array.isArray(value)) {
+      messages = value.filter(m =>
+        ["user","assistant"].includes(m.role) &&
+        typeof m.content === "string"
+      );
+    }
+  } catch {}
+
+  $("chatMessages").replaceChildren();
+
+  if (!messages.length) {
+    bubble(
+      "assistant",
+      "Merhaba! Ben CAN SOFTWARE AI. Sana nasıl yardımcı olabilirim?",
+      false
+    );
+  } else {
+    messages.forEach(m =>
+      bubble(m.role,m.content,false)
+    );
+  }
+}
+
+function saveChat() {
+  if (!chatStorageKey) return;
+
+  try {
+    localStorage.setItem(
+      chatStorageKey,
+      JSON.stringify(messages.slice(-60))
+    );
+  } catch {}
+}
+
+function bubble(role,content,store = true) {
+  const element = document.createElement("div");
+
+  element.className =
+    "msg " + (role === "user" ? "user" : "ai");
+
+  element.textContent = content;
+
+  $("chatMessages").append(element);
+
+  $("chatMessages").scrollTop =
+    $("chatMessages").scrollHeight;
+
+  if (store) {
+    messages.push({role,content});
+    saveChat();
+  }
+}
+
+/* API YARDIMCISI */
+
+async function api(url,options = {}) {
+  if (!currentUser) {
+    throw new Error("Önce giriş yapmalısın.");
+  }
+
+  const {data,error} =
+    await supabase.auth.getSession();
+
+  if (error || !data.session) {
+    throw new Error("Oturum süresi doldu.");
+  }
+
+  const headers = new Headers(options.headers || {});
+
+  headers.set(
+    "Authorization",
+    "Bearer " + data.session.access_token
+  );
+
+  const response = await fetch(url,{
+    ...options,
+    headers
+  });
+
+  if (!response.ok) {
+    const raw = await response.text();
+
+    let detail = raw;
+
+    try {
+      const parsed = JSON.parse(raw);
+
+      detail =
+        parsed.error ||
+        parsed.details ||
+        parsed.message ||
+        raw;
+
+      if (typeof detail !== "string") {
+        detail = JSON.stringify(detail);
+      }
+    } catch {}
+
+    throw new Error(
+      "HTTP " + response.status +
+      ": " + String(detail).slice(0,350)
+    );
+  }
+
+  return response;
+}
+
+/* AI SOHBET */
+
+$("chatForm").addEventListener("submit",async e => {
+  e.preventDefault();
+
+  const form = e.currentTarget;
+  const message = $("chatInput").value.trim();
+
+  if (!message) return;
+
+  bubble("user",message);
+  $("chatInput").value = "";
+
+  setBusy(form,true);
+  setStatus("chatStatus","Yanıt hazırlanıyor...");
+
+  try {
+    const response = await api("/api/chat",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        message,
+        messages:messages.slice(-20)
+      })
+    });
+
+    const data = await response.json();
+
+    bubble("assistant",answerText(data));
+    setStatus("chatStatus","");
+  } catch (error) {
+    showError("chatStatus",error);
+  } finally {
+    setBusy(form,false);
+  }
+});
+
+$("newChat").onclick = () => {
+  messages = [];
+  saveChat();
+
+  $("chatMessages").replaceChildren();
+
+  bubble(
+    "assistant",
+    "Yeni sohbet başladı.",
+    false
+  );
+};
+
+/* GÖRSEL YARDIMCILARI */
+
+function findImage(data) {
+  if (
+    typeof data === "string" &&
+    /^(https:\/\/|data:image\/)/.test(data)
+  ) {
+    return data;
+  }
+
+  if (!data || typeof data !== "object") {
+    return null;
+  }
+
+  for (const key of [
+    "image","imageUrl","image_url",
+    "url","output","result"
+  ]) {
+    const found = findImage(data[key]);
+    if (found) return found;
+  }
+
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      const found = findImage(item);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
+function displayImage(id,source,isBlob = false) {
+  const target = $(id);
+  target.replaceChildren();
+
+  const url = isBlob
+    ? URL.createObjectURL(source)
+    : source;
+
+  const image = document.createElement("img");
+  image.src = url;
+  image.alt = "CAN SOFTWARE AI görsel sonucu";
+
+  const link = document.createElement("a");
+  link.href = url;
+
+  if (isBlob) {
+    link.download =
+      id === "editResult"
+        ? "edited-image.png"
+        : "generated-image.png";
+
+    link.textContent = "⬇️ Görseli İndir";
+  } else {
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "🔗 Görseli Aç";
+  }
+
+  target.append(image,link);
+}
+
+async function imageResponse(response,targetId) {
+  const type =
+    response.headers.get("content-type") || "";
+
+  if (type.startsWith("image/")) {
+    displayImage(
+      targetId,
+      await response.blob(),
+      true
+    );
+    return;
+  }
+
+  const data = await response.json();
+  const url = findImage(data);
+
+  if (!url) {
+    throw new Error(
+      "API görsel döndürmedi: " + answerText(data)
+    );
+  }
+
+  displayImage(targetId,url);
+}
+
+/* GÖRSEL OLUŞTUR */
+
+$("generateForm").addEventListener("submit",async e => {
+  e.preventDefault();
+
+  const form = e.currentTarget;
+  setBusy(form,true);
+
+  setStatus(
+    "generateStatus",
+    "Görsel oluşturuluyor..."
+  );
+
+  $("generateResult").replaceChildren();
+
+  try {
+    const response = await api(
+      "/api/generate-image",
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          prompt:$("generatePrompt").value.trim()
+        })
+      }
+    );
+
+    await imageResponse(response,"generateResult");
+
+    setStatus(
+      "generateStatus",
+      "✅ Görsel hazır.",
+      true
+    );
+  } catch (error) {
+    showError("generateStatus",error);
+  } finally {
+    setBusy(form,false);
+  }
+});
+
+/* DOSYA OKUMA */
+
+function readDataURL(file) {
+  return new Promise((resolve,reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(reader.result);
+
+    reader.onerror = () =>
+      reject(new Error("Dosya okunamadı."));
+
+    reader.readAsDataURL(file);
+  });
+}
+
+/* FOTOĞRAF DÜZENLE */
+
+let previewURL = null;
+
+$("editFile").onchange = () => {
+  const file = $("editFile").files?.[0];
+
+  if (previewURL) {
+    URL.revokeObjectURL(previewURL);
+  }
+
+  $("editPreview").hidden = !file;
+
+  if (file) {
+    previewURL = URL.createObjectURL(file);
+    $("editPreview").src = previewURL;
+  }
+};
+
+$("editForm").addEventListener("submit",async e => {
+  e.preventDefault();
+
+  const form = e.currentTarget;
+  const file = $("editFile").files?.[0];
+
+  if (!file) return;
+
+  if (file.size > 2_700_000) {
+    setStatus(
+      "editStatus",
+      "⚠️ Dosya 2,7 MB sınırını aşıyor."
+    );
+    return;
+  }
+
+  setBusy(form,true);
+
+  setStatus(
+    "editStatus",
+    "Fotoğraf düzenleniyor..."
+  );
+
+  $("editResult").replaceChildren();
+
+  try {
+    const image = await readDataURL(file);
+
+    const response = await api("/api/edit-image",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        image,
+        prompt:$("editPrompt").value.trim()
+      })
+    });
+
+    await imageResponse(response,"editResult");
+
+    setStatus(
+      "editStatus",
+      "✅ Fotoğraf düzenlendi.",
+      true
+    );
+  } catch (error) {
+    showError("editStatus",error);
+  } finally {
+    setBusy(form,false);
+  }
+});
+
+/* DOSYA ANALİZİ */
+
+$("analyzeForm").addEventListener("submit",async e => {
+  e.preventDefault();
+
+  const form = e.currentTarget;
+  const file = $("analyzeFile").files?.[0];
+
+  if (!file) return;
+
+  if (file.size > 2_700_000) {
+    setStatus(
+      "analyzeStatus",
+      "⚠️ Dosya en fazla 2,7 MB olabilir."
+    );
+    return;
+  }
+
+  setBusy(form,true);
+
+  setStatus(
+    "analyzeStatus",
+    "Dosya inceleniyor..."
+  );
+
+  $("analyzeResult").textContent = "";
+
+  try {
+    const dataURL = await readDataURL(file);
+    const base64 = dataURL.split(",")[1];
+
+    const response = await api("/api/analyze",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        filename:file.name,
+        content:base64,
+        question:
+          $("analyzePrompt").value.trim() ||
+          "Bu dosyayı ayrıntılı şekilde özetle."
+      })
+    });
+
+    const data = await response.json();
+
+    $("analyzeResult").textContent =
+      answerText(data);
+
+    setStatus(
+      "analyzeStatus",
+      "✅ Analiz tamamlandı.",
+      true
+    );
+  } catch (error) {
+    showError("analyzeStatus",error);
+  } finally {
+    setBusy(form,false);
+  }
+});
+
+/* WEB ARAŞTIRMASI */
+
+$("searchForm").addEventListener("submit",async e => {
+  e.preventDefault();
+
+  const form = e.currentTarget;
+  const query = $("searchPrompt").value.trim();
+
+  if (!query) return;
+
+  setBusy(form,true);
+
+  setStatus(
+    "searchStatus",
+    "Web araştırması yapılıyor..."
+  );
+
+  $("searchResult").replaceChildren();
+
+  try {
+    const response = await api("/api/search",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({query})
+    });
+
+    const data = await response.json();
+
+    const results = Array.isArray(data.results)
+      ? data.results
+      : [];
+
+    if (results.length) {
+      const intro = document.createElement("p");
+      intro.textContent =
+        `"${query}" için ${results.length} sonuç bulundu.`;
+
+      $("searchResult").append(intro);
+
+      for (const item of results) {
+        const container = document.createElement("div");
+        container.style.marginTop = "15px";
+
+        const link = document.createElement("a");
+        link.href = item.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = item.title || item.url;
+
+        const snippet = document.createElement("p");
+        snippet.className = "sub";
+        snippet.textContent = item.snippet || "";
+
+        container.append(link,snippet);
+        $("searchResult").append(container);
+      }
+    } else {
+      $("searchResult").textContent =
+        answerText(data);
+    }
+
+    setStatus(
+      "searchStatus",
+      "✅ Araştırma tamamlandı.",
+      true
+    );
+  } catch (error) {
+    showError("searchStatus",error);
+  } finally {
+    setBusy(form,false);
+  }
+});
+
+/* SOHBET GEÇMİŞİ */
+
+function renderHistory() {
+  $("historyResult").textContent =
+    messages.length
+      ? messages.map(m =>
+          (m.role === "user" ? "Sen" : "CAN AI") +
+          ": " + m.content
+        ).join("\n\n")
+      : "Henüz kayıtlı sohbet yok.";
+}
+
+$("clearHistory").onclick = () => {
+  if (!confirm("Sohbet geçmişi silinsin mi?")) {
+    return;
+  }
+
+  messages = [];
+  saveChat();
+
+  $("chatMessages").replaceChildren();
+  renderHistory();
+};
+
+/* ===================================
+   👑 CAN SOFTWARE ADMIN PANEL
+   =================================== */
+
+async function loadAdminUsers() {
+  if (
+    !currentUser ||
+    myMembership.role !== "admin"
+  ) {
+    setStatus(
+      "adminStatus",
+      "Bu işlem için admin yetkisi gerekli."
+    );
+    return;
+  }
+
+  const adminId = currentUser.id;
+
+  setStatus(
+    "adminStatus",
+    "Kullanıcılar yükleniyor..."
+  );
+
+  $("adminUsers").replaceChildren();
+
+  const {data,error} = await supabase.rpc(
+    "admin_list_users"
+  );
+
+  if (
+    currentUser?.id !== adminId ||
+    myMembership.role !== "admin"
+  ) return;
+
+  if (error) {
+    showError("adminStatus",error);
+    return;
+  }
+
+  const users = data || [];
+
+  setStatus(
+    "adminStatus",
+    `${users.length} kullanıcı listelendi.`,
+    true
+  );
+
+  if (!users.length) {
+    $("adminUsers").textContent =
+      "Henüz kullanıcı bulunamadı.";
+    return;
+  }
+
+  users.forEach(renderAdminUser);
+}
+
+function renderAdminUser(user) {
+  const card = document.createElement("div");
+  card.className = "admin-user";
+
+  const email = document.createElement("strong");
+  email.textContent =
+    user.email || "E-posta bulunamadı";
+
+  const uid = document.createElement("small");
+  uid.textContent = "UID: " + user.user_id;
+
+  const info = document.createElement("p");
+  info.className = "sub";
+
+  const isProActive = Boolean(
+    user.is_pro &&
+    (
+      !user.pro_expires_at ||
+      new Date(user.pro_expires_at) > new Date()
+    )
+  );
+
+  info.textContent =
+    "Rol: " + user.role +
+    " | PRO: " + (isProActive ? "Aktif" : "Pasif");
+
+  const roleLabel = document.createElement("label");
+  roleLabel.textContent = "Kullanıcı rolü";
+
+  const roleSelect = document.createElement("select");
+
+  const roles = [
+    ["user","👤 Normal Kullanıcı"],
+    ["moderator","🛡️ Yönetici"],
+    ["admin","👑 Admin"]
+  ];
+
+  for (const [value,label] of roles) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    roleSelect.append(option);
+  }
+
+  roleSelect.value = user.role || "user";
+
+  const proLabel = document.createElement("label");
+  proLabel.className = "check-row";
+
+  const proCheckbox = document.createElement("input");
+  proCheckbox.type = "checkbox";
+  proCheckbox.checked = Boolean(user.is_pro);
+
+  const proText = document.createElement("span");
+  proText.textContent = "💎 PRO üyelik ver";
+
+  proLabel.append(proCheckbox,proText);
+
+  const expiryLabel = document.createElement("label");
+  expiryLabel.textContent =
+    "PRO bitiş tarihi (boş bırakırsan süresiz)";
+
+  const expiryInput = document.createElement("input");
+  expiryInput.type = "date";
+
+  if (user.pro_expires_at) {
+    expiryInput.value =
+      user.pro_expires_at.slice(0,10);
+  }
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.className = "btn";
+  saveButton.style.marginTop = "15px";
+  saveButton.textContent = "💾 Yetkileri Kaydet";
+
+  saveButton.onclick = async () => {
+    if (!confirm(
+      `${user.email} kullanıcısının yetkileri güncellensin mi?`
+    )) return;
+
+    saveButton.disabled = true;
+    saveButton.textContent = "Kaydediliyor...";
+
+    try {
+      let expiresAt = null;
+
+      if (proCheckbox.checked && expiryInput.value) {
+        expiresAt = new Date(
+          expiryInput.value + "T23:59:59"
+        ).toISOString();
+      }
+
+      const {error} = await supabase.rpc(
+        "admin_set_membership",
+        {
+          target_user_id:user.user_id,
+          new_role:roleSelect.value,
+          new_is_pro:proCheckbox.checked,
+          new_expires_at:expiresAt
+        }
+      );
+
+      if (error) throw error;
+
+      await refreshMyMembership();
+
+      setStatus(
+        "adminStatus",
+        "✅ Yetkiler kaydedildi.",
+        true
+      );
+
+      if (myMembership.role === "admin") {
+        await loadAdminUsers();
+      }
+    } catch (error) {
+      showError("adminStatus",error);
+      saveButton.disabled = false;
+      saveButton.textContent = "💾 Yetkileri Kaydet";
+    }
+  };
+
+  card.append(
+    email,
+    uid,
+    info,
+    roleLabel,
+    roleSelect,
+    proLabel,
+    expiryLabel,
+    expiryInput,
+    saveButton
+  );
+
+  $("adminUsers").append(card);
+}
+
+$("refreshAdminUsers").onclick = loadAdminUsers;
+
+</script>
+</body>
+</html>

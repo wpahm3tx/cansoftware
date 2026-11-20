@@ -1,82 +1,154 @@
 
-const SUPABASE_URL = 'https://xllmhgabuzaledxqqufe.supabase.co';
-const FOUNDER = 'ahmetbinarbasi64@gmail.com';
+const SUPABASE_URL =
+  'https://xllmhgabuzaledxqqufe.supabase.co';
 
-const limits = {
+const SUPABASE_KEY =
+  process.env.SUPABASE_ANON_KEY ||
+  'sb_publishable_7BnfXFJWwC77ddC8jTXhfA_gvoMYDrL';
+
+const FOUNDER_EMAIL =
+  'ahmetbinarbasi64@gmail.com';
+
+const LIMITS = {
   chat: [10, 200],
   analyze: [2, 30],
-  search: [3, 50]
+  search: [3, 50],
+  generate: [2, 50],
+  edit: [2, 50]
 };
 
+// JSON yaniti
 export function send(res, status, data) {
   return res.status(status).json(data);
 }
 
+// Sadece POST istekleri
+export function onlyPost(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+
+    send(res, 405, {
+      success: false,
+      error: 'Yalnizca POST istekleri destekleniyor.'
+    });
+
+    return false;
+  }
+
+  return true;
+}
+
+// Redis baglantisi
 async function redis(command) {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (!url || !token) {
-    throw Error('Redis ayarlari eksik');
-  }
-
-  const r = await fetch(url.replace(/\/$/, ''), {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(command)
-  });
-
-  if (!r.ok) {
-    throw Error('Redis istegi basarisiz');
-  }
-
-  const d = await r.json();
-
-  if (d.error) {
-    throw Error('Redis: ' + d.error);
-  }
-
-  return d.result;
-}
-
-export async function authenticate(req) {
-  const token = (req.headers.authorization || '')
-    .match(/^Bearer (.+)$/i)?.[1];
-
-  if (!token) {
     throw Object.assign(
-      Error('Oturum acman gerekiyor'),
-      { status: 401 }
+      new Error('Redis ayarlari eksik.'),
+      { status: 503 }
     );
   }
 
-  const r = await fetch(
-    `${SUPABASE_URL}/auth/v1/user`,
+  const response = await fetch(
+    url.replace(/\/$/, ''),
     {
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
-        apikey:
-          process.env.SUPABASE_ANON_KEY ||
-          'sb_publishable_7BnfXFJWwC77ddC8jTXhfA_gvoMYDrL'
-      }
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(command)
     }
   );
 
-  if (!r.ok) {
+  if (!response.ok) {
+    throw new Error(
+      `Redis baglanti hatasi: ${response.status}`
+    );
+  }
+
+  const data = await response.json();
+
+  if (data.error) {
+    throw new Error(
+      `Redis hatasi: ${data.error}`
+    );
+  }
+
+  return data.result;
+}
+
+// Google / Supabase oturum kontrolu
+export async function authenticate(req) {
+  const authorization =
+    req.headers.authorization || '';
+
+  const match = authorization.match(
+    /^Bearer\s+(.+)$/i
+  );
+
+  const accessToken = match?.[1]?.trim();
+
+  if (!accessToken) {
     throw Object.assign(
-      Error('Oturum gecersiz'),
+      new Error('Oturum acman gerekiyor.'),
       { status: 401 }
     );
   }
 
-  const user = await r.json();
+  let response;
 
-  if (!user.id || !user.email) {
+  try {
+    response = await fetch(
+      `${SUPABASE_URL}/auth/v1/user`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          apikey: SUPABASE_KEY,
+          Accept: 'application/json'
+        },
+        cache: 'no-store'
+      }
+    );
+  } catch (error) {
+    console.error(
+      'Supabase baglanti hatasi:',
+      error.message
+    );
+
     throw Object.assign(
-      Error('Kullanici bulunamadi'),
+      new Error(
+        'Supabase sunucusuna baglanilamadi.'
+      ),
+      { status: 502 }
+    );
+  }
+
+  if (!response.ok) {
+    const details = await response.text();
+
+    console.error('Supabase auth failure:', {
+      status: response.status,
+      details: details.slice(0, 500)
+    });
+
+    throw Object.assign(
+      new Error(
+        'Oturum dogrulanamadi. Yeniden giris yap.'
+      ),
+      { status: 401 }
+    );
+  }
+
+  const user = await response.json();
+
+  if (!user?.id || !user?.email) {
+    throw Object.assign(
+      new Error(
+        'Supabase kullanici bilgilerini dondurmedi.'
+      ),
       { status: 401 }
     );
   }
@@ -84,12 +156,13 @@ export async function authenticate(req) {
   return user;
 }
 
+// PRO uyelik ve kurucu kontrolu
 export async function membership(user) {
-  const founder =
-    user.email?.toLowerCase() === FOUNDER &&
+  const isFounder =
+    user.email?.toLowerCase() === FOUNDER_EMAIL &&
     !!user.email_confirmed_at;
 
-  if (founder) {
+  if (isFounder) {
     return {
       founder: true,
       pro: true
@@ -105,50 +178,71 @@ export async function membership(user) {
 
   try {
     record = raw ? JSON.parse(raw) : {};
-  } catch {}
+  } catch {
+    record = {};
+  }
 
-  const expires = record.pro_expires_at;
+  const expiresAt = record.pro_expires_at;
+
+  const isActive =
+    record.is_pro === true &&
+    (
+      !expiresAt ||
+      new Date(expiresAt).getTime() > Date.now()
+    );
 
   return {
     founder: false,
-    pro:
-      record.is_pro === true &&
-      (!expires || new Date(expires).getTime() > Date.now())
+    pro: isActive
   };
 }
 
+// Gunluk kullanim limitleri
 export async function reserve(user, feature) {
-  const m = await membership(user);
+  const member = await membership(user);
 
-  if (m.founder) {
+  if (member.founder) {
     return {
       founder: true,
       pro: true,
-      limit: null
+      limit: null,
+      used: 0
     };
   }
 
-  const max = limits[feature]?.[m.pro ? 1 : 0];
+  const limits = LIMITS[feature];
 
-  if (!max) {
-    throw Error('Gecersiz ozellik');
+  if (!limits) {
+    throw Object.assign(
+      new Error('Gecersiz ozellik.'),
+      { status: 400 }
+    );
   }
 
-  const day = new Date().toISOString().slice(0, 10);
+  const max = limits[member.pro ? 1 : 0];
 
-  const key = `quota:${day}:${feature}:${user.id}`;
+  const day = new Date()
+    .toISOString()
+    .slice(0, 10);
+
+  const key =
+    `quota:${day}:${feature}:${user.id}`;
 
   const count = Number(
     await redis(['INCR', key])
   );
 
   if (count === 1) {
-    await redis(['EXPIRE', key, 172800]);
+    await redis([
+      'EXPIRE',
+      key,
+      172800
+    ]);
   }
 
   if (count > max) {
     throw Object.assign(
-      Error(
+      new Error(
         `Gunluk ${feature} limitine ulastin (${max}).`
       ),
       {
@@ -160,12 +254,13 @@ export async function reserve(user, feature) {
 
   return {
     founder: false,
-    pro: m.pro,
+    pro: member.pro,
     limit: max,
     used: count
   };
 }
 
+// Gemini API
 export async function gemini(
   parts,
   {
@@ -173,11 +268,11 @@ export async function gemini(
     search = false
   } = {}
 ) {
-  const key = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
-  if (!key) {
+  if (!apiKey) {
     throw Object.assign(
-      Error('GEMINI_API_KEY eksik'),
+      new Error('GEMINI_API_KEY eksik.'),
       { status: 503 }
     );
   }
@@ -203,69 +298,78 @@ export async function gemini(
     ];
   }
 
-  const r = await fetch(
+  const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': key
+        'x-goog-api-key': apiKey
       },
       body: JSON.stringify(body)
     }
   );
 
-  const data = await r.json();
+  const data = await response.json();
 
-  if (!r.ok) {
+  if (!response.ok) {
+    console.error('Gemini API failure:', {
+      status: response.status,
+      message: data.error?.message
+    });
+
     throw Object.assign(
-      Error(data.error?.message || 'Gemini API hatasi'),
+      new Error(
+        data.error?.message ||
+        'Gemini API hatasi.'
+      ),
       {
-        status: r.status === 429 ? 429 : 502
+        status:
+          response.status === 429 ? 429 : 502
       }
     );
   }
 
-  return {
-    text:
-      (data.candidates?.[0]?.content?.parts || [])
-        .map(p => p.text || '')
-        .join('\n'),
+  const candidate =
+    data.candidates?.[0];
 
-    sources:
-      (
-        data.candidates?.[0]
-          ?.groundingMetadata
-          ?.groundingChunks || []
-      )
-        .filter(x => x.web)
-        .map(x => ({
-          title: x.web.title,
-          url: x.web.uri
-        }))
+  const text = (
+    candidate?.content?.parts || []
+  )
+    .map(part => part.text || '')
+    .join('\n');
+
+  const sources = (
+    candidate?.groundingMetadata
+      ?.groundingChunks || []
+  )
+    .filter(item => item.web)
+    .map(item => ({
+      title: item.web.title,
+      url: item.web.uri
+    }));
+
+  return {
+    text,
+    sources
   };
 }
 
-export function fail(res, e) {
-  console.error('API:', e.message);
-
-  return send(res, e.status || 500, {
-    success: false,
-    error: e.message || 'Sunucu hatasi'
+// Ortak hata yonetimi
+export function fail(res, error) {
+  console.error('API Error:', {
+    message: error.message,
+    status: error.status || 500
   });
-}
 
-export function onlyPost(req, res) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-
-    send(res, 405, {
+  return send(
+    res,
+    error.status || 500,
+    {
       success: false,
-      error: 'Yalnizca POST'
-    });
-
-    return false;
-  }
-
-  return true;
+      error:
+        error.message ||
+        'Beklenmeyen sunucu hatasi.'
+    }
+  );
 }
